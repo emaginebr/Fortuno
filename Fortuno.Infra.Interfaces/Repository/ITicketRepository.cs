@@ -1,0 +1,13 @@
+namespace Fortuno.Infra.Interfaces.Repository;
+
+public interface ITicketRepository<TModel> : IRepository<TModel> where TModel : class
+{
+    Task<List<TModel>> ListByUserAsync(long userId, long? lotteryId = null, long? numberContains = null);
+    Task<List<TModel>> ListByLotteryAsync(long lotteryId);
+    Task<List<long>> ListSoldNumbersAsync(long lotteryId);
+    Task<long> CountSoldAsync(long lotteryId);
+    Task<TModel?> GetByLotteryAndNumberAsync(long lotteryId, long ticketNumber);
+    Task<List<TModel>> InsertBatchAsync(IEnumerable<TModel> tickets);
+    Task MarkRefundStateAsync(IEnumerable<long> ticketIds, int newStateValue);
+    Task<List<TModel>> ListByInvoiceAsync(long invoiceId);
+}

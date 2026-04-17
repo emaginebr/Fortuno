@@ -1,0 +1,187 @@
+# Fortuno GraphQL schema (HotChocolate)
+# Consulta-pura (read-only). Mutations ficam no REST.
+# Projeção sobre EF Core (IQueryable) para atender SC-007 p95 ≤ 1s.
+
+schema {
+  query: Query
+}
+
+enum LotteryStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum RaffleStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum TicketRefundState {
+  NONE
+  PENDING_REFUND
+  REFUNDED
+}
+
+enum NumberType {
+  INT64
+  COMPOSED_3
+  COMPOSED_4
+  COMPOSED_5
+  COMPOSED_6
+  COMPOSED_7
+  COMPOSED_8
+}
+
+type Lottery {
+  lotteryId: ID!
+  storeId: Long!
+  name: String!
+  slug: String!
+  descriptionMd: String!
+  rulesMd: String!
+  privacyPolicyMd: String!
+  ticketPrice: Decimal!
+  totalPrizeValue: Decimal!
+  ticketMin: Int!
+  ticketMax: Int!
+  ticketNumIni: Long!
+  ticketNumEnd: Long!
+  numberType: NumberType!
+  numberValueMin: Int!
+  numberValueMax: Int!
+  referralPercent: Float!
+  status: LotteryStatus!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+
+  images: [LotteryImage!]!
+  combos: [LotteryCombo!]!
+  raffles: [Raffle!]!
+
+  # Type extensions (computados):
+  availableTickets: Long!
+  soldTickets: Long!
+  totalPossibilities: Long!
+}
+
+type LotteryImage {
+  lotteryImageId: ID!
+  imageUrl: String!
+  description: String
+  displayOrder: Int!
+  createdAt: DateTime!
+}
+
+type LotteryCombo {
+  lotteryComboId: ID!
+  name: String!
+  discountValue: Float!
+  discountLabel: String!
+  quantityStart: Int!
+  quantityEnd: Int!
+}
+
+type Raffle {
+  raffleId: ID!
+  lotteryId: Long!
+  name: String!
+  descriptionMd: String
+  raffleDatetime: DateTime!
+  videoUrl: String
+  includePreviousWinners: Boolean!
+  status: RaffleStatus!
+  awards: [RaffleAward!]!
+  winners: [RaffleWinner!]!
+}
+
+type RaffleAward {
+  raffleAwardId: ID!
+  position: Int!
+  description: String!
+}
+
+type RaffleWinner {
+  raffleWinnerId: ID!
+  position: Int!
+  prizeText: String!
+  ticketId: Long
+  userId: Long
+
+  # Campos computados (via type extension + NAuth):
+  userName: String
+  userCpfMasked: String  # CPF sempre mascarado em consulta pública
+  ticketNumber: Long
+}
+
+type Ticket {
+  ticketId: ID!
+  lotteryId: Long!
+  ticketNumber: Long!
+  invoiceId: Long!
+  refundState: TicketRefundState!
+  createdAt: DateTime!
+
+  # Type extension: lista de prêmios ganhos por este ticket
+  winnings: [RaffleWinner!]!
+}
+
+type ReferrerSummary {
+  referralCode: String!
+  totalPurchases: Int!
+  totalToReceive: Decimal!
+  byLottery: [ReferrerLotteryBreakdown!]!
+}
+
+type ReferrerLotteryBreakdown {
+  lotteryId: Long!
+  lotteryName: String!
+  amount: Decimal!
+}
+
+type LotteryCommissionsSummary {
+  lotteryId: Long!
+  lotteryName: String!
+  totalPayable: Decimal!
+  byReferrer: [ReferrerCommission!]!
+}
+
+type ReferrerCommission {
+  referrerUserId: Long!
+  referrerName: String
+  referralCode: String!
+  amount: Decimal!
+  purchases: Int!
+}
+
+scalar Long
+scalar Decimal
+scalar DateTime
+
+type Query {
+  # Lotteries
+  lotteries(
+    status: LotteryStatus
+    storeId: Long
+  ): [Lottery!]!   @useProjection @useFiltering @useSorting
+
+  lotteryBySlug(slug: String!): Lottery
+
+  lotteryById(id: ID!): Lottery
+
+  # Raffles
+  raffles(lotteryId: Long!, status: RaffleStatus): [Raffle!]!
+
+  raffleById(id: ID!): Raffle
+
+  # Tickets — apenas do usuário autenticado
+  myTickets(lotteryId: Long, numberContains: Long): [Ticket!]!
+
+  # Referrer — painel do usuário autenticado
+  myReferrerSummary: ReferrerSummary!
+
+  # Comissões — painel do dono da Lottery (exige ser proprietário da Store)
+  commissionsByLottery(lotteryId: Long!): LotteryCommissionsSummary!
+}

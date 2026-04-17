@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fortuno.Infra\Fortuno.Infra.csproj" />
+    <ProjectReference Include="..\Fortuno.Domain\Fortuno.Domain.csproj" />
+    <ProjectReference Include="..\Fortuno.Infra.Interfaces\Fortuno.Infra.Interfaces.csproj" />
+    <ProjectReference Include="..\Fortuno.DTO\Fortuno.DTO.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

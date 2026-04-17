@@ -1,0 +1,561 @@
+openapi: 3.0.3
+info:
+  title: Fortuno API (REST)
+  version: 0.1.0
+  description: |
+    Endpoints de mutação e gestão do Fortuno (Sorteios Online).
+    Consultas (leitura) são expostas via GraphQL — ver `graphql.schema.graphql`.
+
+    Autenticação: Basic via NAuth (`Authorization: Basic {token}`). Tenant
+    fixo `fortuna`.
+
+    Formato de erro: `{ sucesso: false, mensagem: string, erros: string[] }`
+    (chaves em português conforme constituição).
+
+servers:
+  - url: https://api.fortuno.local
+    description: Development / Docker
+  - url: https://api.fortuno.com
+    description: Production
+
+security:
+  - BasicAuth: []
+
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [sucesso, mensagem]
+      properties:
+        sucesso: { type: boolean, example: false }
+        mensagem: { type: string }
+        erros:
+          type: array
+          items: { type: string }
+
+    LotteryInsertInfo:
+      type: object
+      required: [storeId, name, descriptionMd, rulesMd, privacyPolicyMd,
+                 ticketPrice, totalPrizeValue, numberType,
+                 numberValueMin, numberValueMax]
+      properties:
+        storeId:           { type: integer, format: int64 }
+        name:              { type: string, maxLength: 160 }
+        descriptionMd:     { type: string }
+        rulesMd:           { type: string }
+        privacyPolicyMd:   { type: string }
+        ticketPrice:       { type: number, format: decimal }
+        totalPrizeValue:   { type: number, format: decimal }
+        ticketMin:         { type: integer, default: 0 }
+        ticketMax:         { type: integer, default: 0 }
+        ticketNumIni:      { type: integer, format: int64, default: 1 }
+        ticketNumEnd:      { type: integer, format: int64, default: 0 }
+        numberType:        { type: integer, enum: [1, 3, 4, 5, 6, 7, 8] }
+        numberValueMin:    { type: integer }
+        numberValueMax:    { type: integer }
+        referralPercent:   { type: number, format: float, default: 0 }
+
+    LotteryInfo:
+      allOf:
+        - $ref: '#/components/schemas/LotteryInsertInfo'
+        - type: object
+          properties:
+            lotteryId: { type: integer, format: int64 }
+            slug:      { type: string }
+            status:    { type: integer, enum: [1, 2, 3, 4] }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+
+    LotteryCancelRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 20, maxLength: 1000 }
+
+    LotteryImageInsertInfo:
+      type: object
+      required: [lotteryId, imageBase64]
+      properties:
+        lotteryId:    { type: integer, format: int64 }
+        imageBase64:  { type: string, description: "Imagem em base64; upload ao S3 via zTools" }
+        description:  { type: string, maxLength: 260 }
+        displayOrder: { type: integer, default: 0 }
+
+    LotteryComboInsertInfo:
+      type: object
+      required: [lotteryId, name, discountLabel]
+      properties:
+        lotteryId:     { type: integer, format: int64 }
+        name:          { type: string, maxLength: 120 }
+        discountValue: { type: number, format: float, default: 0 }
+        discountLabel: { type: string, maxLength: 80 }
+        quantityStart: { type: integer, default: 0 }
+        quantityEnd:   { type: integer, default: 0 }
+
+    RaffleInsertInfo:
+      type: object
+      required: [lotteryId, name, raffleDatetime]
+      properties:
+        lotteryId:              { type: integer, format: int64 }
+        name:                   { type: string, maxLength: 160 }
+        descriptionMd:          { type: string }
+        raffleDatetime:         { type: string, format: date-time }
+        videoUrl:               { type: string, maxLength: 500 }
+        includePreviousWinners: { type: boolean, default: false }
+
+    RaffleAwardInsertInfo:
+      type: object
+      required: [raffleId, position, description]
+      properties:
+        raffleId:    { type: integer, format: int64 }
+        position:    { type: integer }
+        description: { type: string, maxLength: 300 }
+
+    PurchasePreviewRequest:
+      type: object
+      required: [lotteryId, quantity, mode]
+      properties:
+        lotteryId:     { type: integer, format: int64 }
+        quantity:      { type: integer }
+        mode:          { type: integer, enum: [1, 2], description: "1=Random, 2=UserPicks" }
+        pickedNumbers:
+          type: array
+          items: { type: integer, format: int64 }
+          description: "Obrigatório quando mode=UserPicks"
+        referralCode:  { type: string, maxLength: 8, nullable: true }
+
+    PurchasePreviewInfo:
+      type: object
+      properties:
+        quantity:        { type: integer }
+        unitPrice:       { type: number, format: decimal }
+        discountValue:   { type: number, format: decimal }
+        totalAmount:     { type: number, format: decimal }
+        applicableCombo: { type: string, nullable: true }
+        availableTickets: { type: integer, format: int64 }
+        referrerUserId:  { type: integer, format: int64, nullable: true }
+
+    PurchaseConfirmRequest:
+      type: object
+      required: [lotteryId, quantity, mode]
+      properties:
+        lotteryId:     { type: integer, format: int64 }
+        quantity:      { type: integer }
+        mode:          { type: integer, enum: [1, 2] }
+        pickedNumbers:
+          type: array
+          items: { type: integer, format: int64 }
+        referralCode:  { type: string, nullable: true }
+
+    PurchaseConfirmResponse:
+      type: object
+      properties:
+        invoiceId: { type: integer, format: int64 }
+        pixQrCode: { type: string }
+        pixCopyPaste: { type: string }
+        expiresAt: { type: string, format: date-time }
+
+    RaffleWinnersPreviewRequest:
+      type: object
+      required: [raffleId, winningNumbers]
+      properties:
+        raffleId:       { type: integer, format: int64 }
+        winningNumbers:
+          type: array
+          items: { type: integer, format: int64 }
+
+    RaffleWinnerPreviewRow:
+      type: object
+      properties:
+        position:      { type: integer }
+        awardId:       { type: integer, format: int64 }
+        prizeText:     { type: string }
+        number:        { type: integer, format: int64 }
+        ticketId:      { type: integer, format: int64, nullable: true }
+        userId:        { type: integer, format: int64, nullable: true }
+        userName:      { type: string, nullable: true }
+        userCpfMasked: { type: string, nullable: true }
+        excludedByFlag:
+          type: boolean
+          description: "true se excluído por IncludePreviousWinners=false"
+
+    RaffleCancelRequest:
+      type: object
+      required: [redistributions]
+      properties:
+        redistributions:
+          type: array
+          items:
+            type: object
+            required: [raffleAwardId, targetRaffleId]
+            properties:
+              raffleAwardId:  { type: integer, format: int64 }
+              targetRaffleId: { type: integer, format: int64 }
+
+    RefundStatusChangeRequest:
+      type: object
+      required: [ticketIds]
+      properties:
+        ticketIds:
+          type: array
+          items: { type: integer, format: int64 }
+        externalReference: { type: string, nullable: true, maxLength: 160 }
+
+    ReferrerEarningsPanel:
+      type: object
+      properties:
+        referralCode:        { type: string }
+        totalPurchases:      { type: integer }
+        totalToReceive:      { type: number, format: decimal }
+        byLottery:
+          type: array
+          items:
+            type: object
+            properties:
+              lotteryId:   { type: integer, format: int64 }
+              lotteryName: { type: string }
+              amount:      { type: number, format: decimal }
+
+    LotteryCommissionsPanel:
+      type: object
+      properties:
+        lotteryId:    { type: integer, format: int64 }
+        lotteryName:  { type: string }
+        totalPayable: { type: number, format: decimal }
+        byReferrer:
+          type: array
+          items:
+            type: object
+            properties:
+              referrerUserId: { type: integer, format: int64 }
+              referrerName:   { type: string, nullable: true }
+              referralCode:   { type: string }
+              amount:         { type: number, format: decimal }
+              purchases:      { type: integer }
+
+paths:
+  /api/lotteries:
+    post:
+      summary: Cria Lottery em status Draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LotteryInsertInfo' }
+      responses:
+        '201': { description: Criado, content: { application/json: { schema: { $ref: '#/components/schemas/LotteryInfo' }}}}
+        '400': { description: Validação, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+        '401': { description: Não autenticado }
+        '403': { description: User não é proprietário da Store }
+
+  /api/lotteries/{lotteryId}:
+    put:
+      summary: Atualiza Lottery (apenas em Draft)
+      parameters:
+        - in: path
+          name: lotteryId
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LotteryInsertInfo' }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/LotteryInfo' }}}}
+        '400': { description: Validação ou estado }
+        '403': { description: Não é dono }
+        '404': { description: Não encontrado }
+
+  /api/lotteries/{lotteryId}/publish:
+    post:
+      summary: Transita Draft → Open (exige imagem + raffle + award)
+      parameters:
+        - in: path
+          name: lotteryId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: OK }
+        '400': { description: Requisitos não atendidos }
+        '403': { description: Não é dono }
+
+  /api/lotteries/{lotteryId}/close:
+    post:
+      summary: Transita Open → Closed
+      parameters:
+        - in: path
+          name: lotteryId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: OK }
+
+  /api/lotteries/{lotteryId}/cancel:
+    post:
+      summary: Transita → Cancelled (exige motivo ≥20 chars; irreversível)
+      parameters:
+        - in: path
+          name: lotteryId
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LotteryCancelRequest' }
+      responses:
+        '200': { description: OK }
+        '400': { description: Motivo insuficiente }
+
+  /api/lotteries/{lotteryId}/rules.pdf:
+    get:
+      summary: Baixa regras em PDF (gerado via zTools)
+      parameters:
+        - in: path
+          name: lotteryId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: PDF, content: { application/pdf: { schema: { type: string, format: binary }}}}
+
+  /api/lotteries/{lotteryId}/privacy-policy.pdf:
+    get:
+      summary: Baixa política de privacidade em PDF
+      parameters:
+        - in: path
+          name: lotteryId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: PDF }
+
+  /api/lottery-images:
+    post:
+      summary: Adiciona imagem (upload via zTools, apenas em Draft)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LotteryImageInsertInfo' }
+      responses:
+        '201': { description: Criado }
+
+  /api/lottery-images/{id}:
+    delete:
+      summary: Remove imagem (apenas em Draft)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '204': { description: Removido }
+
+  /api/lottery-combos:
+    post:
+      summary: Cria combo de desconto (apenas em Draft)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LotteryComboInsertInfo' }
+      responses:
+        '201': { description: Criado }
+
+  /api/raffles:
+    post:
+      summary: Cria Raffle (apenas em Draft)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RaffleInsertInfo' }
+      responses:
+        '201': { description: Criado }
+
+  /api/raffles/{raffleId}/cancel:
+    post:
+      summary: Cancela Raffle (exige redistribuição de awards)
+      parameters:
+        - in: path
+          name: raffleId
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RaffleCancelRequest' }
+      responses:
+        '200': { description: OK }
+        '400': { description: Awards órfãos ou nenhum Raffle destino }
+
+  /api/raffle-awards:
+    post:
+      summary: Adiciona prêmio (apenas em Draft)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RaffleAwardInsertInfo' }
+      responses:
+        '201': { description: Criado }
+
+  /api/raffles/{raffleId}/winners/preview:
+    post:
+      summary: Gera prévia de ganhadores sem persistir
+      parameters:
+        - in: path
+          name: raffleId
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RaffleWinnersPreviewRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/RaffleWinnerPreviewRow' }
+
+  /api/raffles/{raffleId}/winners/confirm:
+    post:
+      summary: Confirma ganhadores (grava RaffleWinner)
+      parameters:
+        - in: path
+          name: raffleId
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RaffleWinnersPreviewRequest' }
+      responses:
+        '201': { description: Gravado }
+
+  /api/raffles/{raffleId}/close:
+    post:
+      summary: Fecha Raffle (imutável após)
+      parameters:
+        - in: path
+          name: raffleId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: OK }
+
+  /api/purchases/preview:
+    post:
+      summary: Calcula preview de compra (combo, disponibilidade, desconto)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PurchasePreviewRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PurchasePreviewInfo' }
+
+  /api/purchases/confirm:
+    post:
+      summary: Cria Invoice no ProxyPay; reserva números em UserPicks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PurchaseConfirmRequest' }
+      responses:
+        '201':
+          description: Invoice criada (aguardando PIX)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PurchaseConfirmResponse' }
+
+  /api/tickets/mine:
+    get:
+      summary: Lista tickets do usuário autenticado
+      parameters:
+        - in: query
+          name: lotteryId
+          schema: { type: integer, format: int64 }
+        - in: query
+          name: number
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: OK }
+
+  /api/referrals/me:
+    get:
+      summary: Painel do indicador (cálculo em tempo real)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReferrerEarningsPanel' }
+
+  /api/commissions/lottery/{lotteryId}:
+    get:
+      summary: Painel do dono — comissões a pagar (apenas consulta)
+      parameters:
+        - in: path
+          name: lotteryId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LotteryCommissionsPanel' }
+
+  /api/refunds/pending/{lotteryId}:
+    get:
+      summary: Lista tickets PendingRefund da Lottery (dono)
+      parameters:
+        - in: path
+          name: lotteryId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: OK }
+
+  /api/refunds/mark-refunded:
+    post:
+      summary: Muda status dos tickets PendingRefund → Refunded (manual)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefundStatusChangeRequest' }
+      responses:
+        '200': { description: OK }
+
+  /webhooks/proxypay/invoice-paid:
+    post:
+      summary: Webhook de confirmação de pagamento PIX (ver webhook-proxypay.md)
+      security: []  # autenticação por HMAC, não Basic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200': { description: Processado (ou duplicata ignorada) }
+        '401': { description: Assinatura HMAC inválida }
