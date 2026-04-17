@@ -1,0 +1,6 @@
+@Fortuno.API_HostAddress = http://localhost:5286
+
+GET {{Fortuno.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

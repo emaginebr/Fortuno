@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fortuno.Domain\Fortuno.Domain.csproj" />
+    <ProjectReference Include="..\Fortuno.Infra\Fortuno.Infra.csproj" />
+    <ProjectReference Include="..\Fortuno.Infra.Interfaces\Fortuno.Infra.Interfaces.csproj" />
+    <ProjectReference Include="..\Fortuno.DTO\Fortuno.DTO.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HotChocolate.AspNetCore" Version="14.0.0" />
+    <PackageReference Include="HotChocolate.AspNetCore.Authorization" Version="14.0.0" />
+    <PackageReference Include="HotChocolate.Data.EntityFramework" Version="14.0.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
