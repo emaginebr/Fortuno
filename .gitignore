@@ -11,6 +11,13 @@
 *.sln.docstates
 *.env
 
+# Env files com secrets — nunca commitar
+.env
+.env.prod
+.env.local
+!.env.example
+!.env.prod.example
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
