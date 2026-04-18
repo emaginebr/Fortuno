@@ -1,0 +1,22 @@
+meta {
+  name: List My Tickets
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/tickets/mine?lotteryId={{lotteryId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Basic {{accessToken}}
+}
+
+params:query {
+  lotteryId: {{lotteryId}}
+  ~number:
+  ~fromDate:
+  ~toDate:
+}

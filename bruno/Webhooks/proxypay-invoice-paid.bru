@@ -1,0 +1,33 @@
+meta {
+  name: ProxyPay Invoice Paid (webhook)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/webhooks/proxypay/invoice-paid
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  ~X-ProxyPay-Signature: <preencher com HMAC SHA-256 do body usando o secret configurado>
+}
+
+body:json {
+  {
+    "eventId": "evt-bruno-test-0001",
+    "eventType": "invoice.paid",
+    "occurredAt": "2026-04-18T12:00:00Z",
+    "tenant": "{{nauthTenant}}",
+    "data": {
+      "invoiceId": {{invoiceId}},
+      "storeId": {{storeId}},
+      "amount": 50.00,
+      "paidAt": "2026-04-18T12:00:00Z",
+      "status": "paid",
+      "metadata": {}
+    }
+  }
+}

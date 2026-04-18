@@ -2,7 +2,8 @@ namespace Fortuno.DTO.Settings;
 
 public class NAuthSettings
 {
-    public string BaseUrl { get; set; } = string.Empty;
-    public string Tenant { get; set; } = "fortuna";
-    public string ApiKey { get; set; } = string.Empty;
+    public string ApiUrl { get; set; } = string.Empty;
+    public string TenantId { get; set; } = "fortuna";
+    public string JwtSecret { get; set; } = string.Empty;
+    public string BucketName { get; set; } = string.Empty;
 }

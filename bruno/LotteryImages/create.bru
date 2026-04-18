@@ -1,0 +1,31 @@
+meta {
+  name: Create Lottery Image
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/lottery-images
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Basic {{accessToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "lotteryId": {{lotteryId}},
+    "imageBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+    "description": "Cover image",
+    "displayOrder": 1
+  }
+}
+
+script:post-response {
+  if (res.status >= 200 && res.status < 300 && res.body && res.body.lotteryImageId) {
+    bru.setVar("lotteryImageId", res.body.lotteryImageId);
+  }
+}

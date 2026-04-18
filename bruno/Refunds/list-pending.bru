@@ -1,0 +1,15 @@
+meta {
+  name: List Pending Refunds
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/refunds/pending/{{lotteryId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Basic {{accessToken}}
+}

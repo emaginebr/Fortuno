@@ -1,0 +1,21 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fortuno-api
+    restart: unless-stopped
+    expose:
+      - "80"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__FortunoContext: ${CONNECTION_STRING}
+      NAuth__JwtSecret: ${NAUTH_JWT_SECRET}
+      ProxyPay__WebhookSecret: ${PROXYPAY_WEBHOOK_SECRET}
+    networks:
+      - emagine-network
+
+networks:
+  emagine-network:
+    external: true

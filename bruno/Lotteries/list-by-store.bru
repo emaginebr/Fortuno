@@ -1,0 +1,15 @@
+meta {
+  name: List Lotteries by Store
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/lotteries/store/{{storeId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Basic {{accessToken}}
+}

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Include>[Fortuno.Domain]*,[Fortuno.Application]*,[Fortuno.Infra]*</Include>
+          <Exclude>[*]*Settings,[*]*.Migrations.*,[Fortuno.Infra]Fortuno.Infra.Context.*,[Fortuno.Infra]Fortuno.Infra.Repository.*</Exclude>
+          <ExcludeByFile>**/Migrations/*.cs,**/Program.cs,**/Startup.cs,**/*Settings.cs,**/Repository/*.cs</ExcludeByFile>
+          <SingleHit>false</SingleHit>
+          <UseSourceLink>false</UseSourceLink>
+          <IncludeTestAssembly>false</IncludeTestAssembly>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

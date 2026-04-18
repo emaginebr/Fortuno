@@ -1,0 +1,15 @@
+meta {
+  name: Commissions by Lottery
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/commissions/lottery/{{lotteryId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Basic {{accessToken}}
+}

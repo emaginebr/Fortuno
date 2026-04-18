@@ -1,0 +1,15 @@
+meta {
+  name: Publish Lottery
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/lotteries/{{lotteryId}}/publish
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Basic {{accessToken}}
+}

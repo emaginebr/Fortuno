@@ -1,0 +1,30 @@
+meta {
+  name: Create Raffle Award
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/raffle-awards
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Basic {{accessToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "raffleId": {{raffleId}},
+    "position": 1,
+    "description": "R$ 10.000,00"
+  }
+}
+
+script:post-response {
+  if (res.status >= 200 && res.status < 300 && res.body && res.body.raffleAwardId) {
+    bru.setVar("raffleAwardId", res.body.raffleAwardId);
+  }
+}

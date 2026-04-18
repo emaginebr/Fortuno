@@ -1,0 +1,23 @@
+meta {
+  name: Preview Winners
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/raffles/{{raffleId}}/winners/preview
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Basic {{accessToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "raffleId": {{raffleId}},
+    "winningNumbers": [1, 2, 3]
+  }
+}

@@ -1,0 +1,43 @@
+meta {
+  name: Create Lottery
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/lotteries
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Basic {{accessToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "storeId": {{storeId}},
+    "name": "Bruno Test Lottery",
+    "descriptionMd": "# Description\nCreated via Bruno collection.",
+    "rulesMd": "## Rules\n- Rule 1\n- Rule 2",
+    "privacyPolicyMd": "## Privacy\nStandard policy.",
+    "ticketPrice": 10.00,
+    "totalPrizeValue": 10000.00,
+    "ticketMin": 1,
+    "ticketMax": 100,
+    "ticketNumIni": 1,
+    "ticketNumEnd": 1000,
+    "numberType": "Int64",
+    "numberValueMin": 0,
+    "numberValueMax": 0,
+    "referralPercent": 5.0
+  }
+}
+
+script:post-response {
+  if (res.status >= 200 && res.status < 300 && res.body && res.body.lotteryId) {
+    bru.setVar("lotteryId", res.body.lotteryId);
+    bru.setVar("lotterySlug", res.body.slug || "");
+  }
+}

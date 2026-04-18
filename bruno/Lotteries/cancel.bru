@@ -1,0 +1,22 @@
+meta {
+  name: Cancel Lottery
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/lotteries/{{lotteryId}}/cancel
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Basic {{accessToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "reason": "Cancelled via Bruno collection — exploratory test with valid reason length."
+  }
+}

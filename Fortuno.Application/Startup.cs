@@ -55,19 +55,11 @@ public static class Startup
         services.AddScoped<IWebhookEventRepository<WebhookEvent>, WebhookEventRepository>();
 
         // NAuth (inclui IUserClient, IRoleClient, TenantDelegatingHandler)
-        services.Configure<NAuth.DTO.Settings.NAuthSetting>(s =>
-        {
-            var nauthCfg = config.GetSection("NAuth");
-            s.ApiUrl = nauthCfg["BaseUrl"] ?? string.Empty;
-            s.TenantId = nauthCfg["Tenant"] ?? "fortuna";
-        });
+        services.Configure<NAuth.DTO.Settings.NAuthSetting>(config.GetSection("NAuth"));
         services.AddNAuth();
 
         // zTools (IFileClient, IStringClient etc.)
-        services.Configure<zToolsetting>(s =>
-        {
-            s.ApiUrl = config.GetSection("ZTools")["BaseUrl"] ?? string.Empty;
-        });
+        services.Configure<zToolsetting>(config.GetSection("ZTools"));
         services.AddHttpClient<IFileClient, FileClient>();
         services.AddHttpClient<IStringClient, StringClient>();
 

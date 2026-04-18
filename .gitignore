@@ -423,3 +423,20 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# ====================================================================
+# QA Test Suite (feature 002-qa-test-suite)
+# ====================================================================
+
+# ApiTests — configuração local com segredos (usar appsettings.Tests.example.json como template)
+Fortuno.ApiTests/appsettings.Tests.json
+
+# Bruno — ambientes reais (com credenciais). Apenas *.example.bru é versionado.
+bruno/environments/local.bru
+bruno/environments/dev.bru
+bruno/environments/prod.bru
+
+# Coverage artifacts
+**/coverage.cobertura.xml
+**/TestResults/
+coverage-report/

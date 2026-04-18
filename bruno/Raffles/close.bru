@@ -1,0 +1,15 @@
+meta {
+  name: Close Raffle
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/raffles/{{raffleId}}/close
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Basic {{accessToken}}
+}
