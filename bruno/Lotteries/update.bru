@@ -1,0 +1,35 @@
+meta {
+  name: Update Lottery
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/api/lotteries/{{lotteryId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Basic {{accessToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Bruno Test Lottery (updated)",
+    "descriptionMd": "# Updated",
+    "rulesMd": "## Rules",
+    "privacyPolicyMd": "## Privacy",
+    "ticketPrice": 12.50,
+    "totalPrizeValue": 15000.00,
+    "ticketMin": 1,
+    "ticketMax": 100,
+    "ticketNumIni": 1,
+    "ticketNumEnd": 1000,
+    "numberType": "Int64",
+    "numberValueMin": 0,
+    "numberValueMax": 0,
+    "referralPercent": 5.0
+  }
+}

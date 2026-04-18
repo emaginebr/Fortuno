@@ -1,0 +1,32 @@
+meta {
+  name: Confirm Purchase
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/purchases/confirm
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Basic {{accessToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "lotteryId": {{lotteryId}},
+    "quantity": 5,
+    "mode": "Random",
+    "pickedNumbers": null,
+    "referralCode": null
+  }
+}
+
+script:post-response {
+  if (res.status >= 200 && res.status < 300 && res.body && res.body.invoiceId) {
+    bru.setVar("invoiceId", res.body.invoiceId);
+  }
+}

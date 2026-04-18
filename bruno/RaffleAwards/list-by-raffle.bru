@@ -1,0 +1,11 @@
+meta {
+  name: List Awards by Raffle (public)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/raffle-awards?raffleId={{raffleId}}
+  body: none
+  auth: none
+}

@@ -1,0 +1,15 @@
+meta {
+  name: My Referral Earnings
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/referrals/me
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Basic {{accessToken}}
+}

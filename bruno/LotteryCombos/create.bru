@@ -1,0 +1,33 @@
+meta {
+  name: Create Lottery Combo
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/lottery-combos
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Basic {{accessToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "lotteryId": {{lotteryId}},
+    "name": "5 Tickets Combo",
+    "discountValue": 10.0,
+    "discountLabel": "10% OFF",
+    "quantityStart": 5,
+    "quantityEnd": 9
+  }
+}
+
+script:post-response {
+  if (res.status >= 200 && res.status < 300 && res.body && res.body.lotteryComboId) {
+    bru.setVar("lotteryComboId", res.body.lotteryComboId);
+  }
+}

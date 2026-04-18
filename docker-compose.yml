@@ -1,0 +1,53 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fortuno-api
+    ports:
+      - "${APP_PORT:-5000}:80"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__FortunoContext: ${CONNECTION_STRING}
+      NAuth__ApiUrl: ${NAUTH_API_URL}
+      NAuth__TenantId: ${NAUTH_TENANT_ID}
+      NAuth__JwtSecret: ${NAUTH_JWT_SECRET}
+      NAuth__BucketName: ${NAUTH_BUCKET_NAME}
+      ProxyPay__ApiUrl: ${PROXYPAY_API_URL}
+      ProxyPay__TenantId: ${PROXYPAY_TENANT_ID}
+      ProxyPay__WebhookSecret: ${PROXYPAY_WEBHOOK_SECRET}
+      ZTools__ApiUrl: ${ZTOOLS_API_URL}
+      ZTools__S3BucketName: ${ZTOOLS_S3_BUCKET_NAME}
+      Cors__AllowAnyOrigin: ${CORS_ALLOW_ANY_ORIGIN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - emagine-network
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: fortuno-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - emagine-network
+
+volumes:
+  postgres_data:
+
+networks:
+  emagine-network:
+    external: true

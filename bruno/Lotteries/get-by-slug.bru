@@ -1,0 +1,11 @@
+meta {
+  name: Get Lottery by Slug (public)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/lotteries/slug/{{lotterySlug}}
+  body: none
+  auth: none
+}

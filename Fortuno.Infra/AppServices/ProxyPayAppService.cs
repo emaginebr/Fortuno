@@ -16,14 +16,11 @@ public class ProxyPayAppService : IProxyPayAppService
         _http = http;
         _settings = options.Value.ProxyPay;
 
-        if (!string.IsNullOrWhiteSpace(_settings.BaseUrl))
-            _http.BaseAddress = new Uri(_settings.BaseUrl);
+        if (!string.IsNullOrWhiteSpace(_settings.ApiUrl))
+            _http.BaseAddress = new Uri(_settings.ApiUrl);
 
-        if (!_http.DefaultRequestHeaders.Contains("X-Tenant"))
-            _http.DefaultRequestHeaders.Add("X-Tenant", _settings.Tenant);
-
-        if (!_http.DefaultRequestHeaders.Contains("X-Api-Key") && !string.IsNullOrWhiteSpace(_settings.ApiKey))
-            _http.DefaultRequestHeaders.Add("X-Api-Key", _settings.ApiKey);
+        if (!_http.DefaultRequestHeaders.Contains("X-Tenant-Id"))
+            _http.DefaultRequestHeaders.Add("X-Tenant-Id", _settings.TenantId);
     }
 
     public async Task<ProxyPayStoreInfo?> GetStoreAsync(long storeId)
