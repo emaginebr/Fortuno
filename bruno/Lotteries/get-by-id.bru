@@ -5,7 +5,19 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/lotteries/{{lotteryId}}
+  url: {{baseUrl}}/lotteries/{{lotteryId}}
   body: none
-  auth: none
+  auth: bearer
+}
+
+headers {
+  : 
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  lotteryId: 1
 }

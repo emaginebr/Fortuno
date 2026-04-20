@@ -20,18 +20,3 @@ public class ReferrerEarningsPanel
     public string Note { get; set; } =
         "O pagamento destas comissões ocorre fora do sistema. O Fortuno apenas calcula e exibe os valores.";
 }
-
-public class ReferrerLotteryBreakdown
-{
-    [JsonPropertyName("lotteryId")]
-    public long LotteryId { get; set; }
-
-    [JsonPropertyName("lotteryName")]
-    public string LotteryName { get; set; } = string.Empty;
-
-    [JsonPropertyName("amount")]
-    public decimal Amount { get; set; }
-
-    [JsonPropertyName("purchases")]
-    public int Purchases { get; set; }
-}

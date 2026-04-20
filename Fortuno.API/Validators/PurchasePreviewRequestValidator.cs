@@ -22,11 +22,3 @@ public class PurchasePreviewRequestValidator : AbstractValidator<PurchasePreview
             .WithMessage("No modo UserPicks, pickedNumbers é obrigatório e deve ter a mesma quantidade do pedido.");
     }
 }
-
-public class PurchaseConfirmRequestValidator : AbstractValidator<PurchaseConfirmRequest>
-{
-    public PurchaseConfirmRequestValidator()
-    {
-        Include(new PurchasePreviewRequestValidator());
-    }
-}

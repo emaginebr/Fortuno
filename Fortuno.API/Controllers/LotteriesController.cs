@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Fortuno.API.Controllers;
 
 [ApiController]
-[Route("api/lotteries")]
+[Route("lotteries")]
 [Authorize]
 public class LotteriesController : ControllerBase
 {
@@ -38,7 +38,7 @@ public class LotteriesController : ControllerBase
     public async Task<IActionResult> GetById(long lotteryId)
     {
         var info = await _lotteries.GetByIdAsync(lotteryId);
-        return info is null ? NotFound() : Ok(info);
+        return Ok(info);
     }
 
     [HttpGet("slug/{slug}")]
@@ -46,7 +46,7 @@ public class LotteriesController : ControllerBase
     public async Task<IActionResult> GetBySlug(string slug)
     {
         var info = await _lotteries.GetBySlugAsync(slug);
-        return info is null ? NotFound() : Ok(info);
+        return Ok(info);
     }
 
     [HttpGet("store/{storeId:long}")]
@@ -61,7 +61,7 @@ public class LotteriesController : ControllerBase
             var info = await _lotteries.UpdateAsync(User.GetCurrentUserId(), lotteryId, dto);
             return Ok(info);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
@@ -74,7 +74,7 @@ public class LotteriesController : ControllerBase
             var info = await _lotteries.PublishAsync(User.GetCurrentUserId(), lotteryId);
             return Ok(info);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
@@ -87,7 +87,7 @@ public class LotteriesController : ControllerBase
             var info = await _lotteries.CloseAsync(User.GetCurrentUserId(), lotteryId);
             return Ok(info);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
@@ -100,7 +100,7 @@ public class LotteriesController : ControllerBase
             var info = await _lotteries.CancelAsync(User.GetCurrentUserId(), lotteryId, request);
             return Ok(info);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
@@ -114,7 +114,7 @@ public class LotteriesController : ControllerBase
             var total = await _lotteries.CalculatePossibilitiesAsync(lotteryId);
             return Ok(new { lotteryId, totalPossibilities = total });
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
     }
 
     [HttpGet("{lotteryId:long}/rules.pdf")]
@@ -122,7 +122,7 @@ public class LotteriesController : ControllerBase
     public async Task<IActionResult> RulesPdf(long lotteryId)
     {
         var info = await _lotteries.GetByIdAsync(lotteryId);
-        if (info is null) return NotFound();
+        if (info is null) return Ok(null);
         var pdf = await _zTools.GeneratePdfFromMarkdownAsync(info.RulesMd, $"Regras — {info.Name}");
         return File(pdf, "application/pdf", $"lottery-{lotteryId}-rules.pdf");
     }
@@ -132,7 +132,7 @@ public class LotteriesController : ControllerBase
     public async Task<IActionResult> PrivacyPolicyPdf(long lotteryId)
     {
         var info = await _lotteries.GetByIdAsync(lotteryId);
-        if (info is null) return NotFound();
+        if (info is null) return Ok(null);
         var pdf = await _zTools.GeneratePdfFromMarkdownAsync(info.PrivacyPolicyMd, $"Política de Privacidade — {info.Name}");
         return File(pdf, "application/pdf", $"lottery-{lotteryId}-privacy.pdf");
     }

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Fortuno.API.Controllers;
 
 [ApiController]
-[Route("api/referrals")]
+[Route("referrals")]
 [Authorize]
 public class ReferralsController : ControllerBase
 {

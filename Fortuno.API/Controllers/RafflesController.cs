@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Fortuno.API.Controllers;
 
 [ApiController]
-[Route("api/raffles")]
+[Route("raffles")]
 [Authorize]
 public class RafflesController : ControllerBase
 {
@@ -26,7 +26,7 @@ public class RafflesController : ControllerBase
             var info = await _raffles.CreateAsync(User.GetCurrentUserId(), dto);
             return CreatedAtAction(nameof(GetById), new { raffleId = info.RaffleId }, info);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
@@ -36,7 +36,7 @@ public class RafflesController : ControllerBase
     public async Task<IActionResult> GetById(long raffleId)
     {
         var info = await _raffles.GetByIdAsync(raffleId);
-        return info is null ? NotFound() : Ok(info);
+        return Ok(info);
     }
 
     [HttpGet("lottery/{lotteryId:long}")]
@@ -53,7 +53,7 @@ public class RafflesController : ControllerBase
             var rows = await _raffles.PreviewWinnersAsync(User.GetCurrentUserId(), request);
             return Ok(rows);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
@@ -67,7 +67,7 @@ public class RafflesController : ControllerBase
             var winners = await _raffles.ConfirmWinnersAsync(User.GetCurrentUserId(), request);
             return StatusCode(201, winners);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
@@ -80,7 +80,7 @@ public class RafflesController : ControllerBase
             var info = await _raffles.CloseAsync(User.GetCurrentUserId(), raffleId);
             return Ok(info);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
@@ -93,7 +93,7 @@ public class RafflesController : ControllerBase
             var info = await _raffles.UpdateAsync(User.GetCurrentUserId(), raffleId, dto);
             return Ok(info);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
@@ -106,7 +106,7 @@ public class RafflesController : ControllerBase
             await _raffles.DeleteAsync(User.GetCurrentUserId(), raffleId);
             return NoContent();
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
@@ -119,7 +119,7 @@ public class RafflesController : ControllerBase
             var info = await _raffles.CancelAsync(User.GetCurrentUserId(), raffleId, request);
             return Ok(info);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }

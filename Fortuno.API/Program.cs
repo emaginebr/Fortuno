@@ -10,6 +10,10 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Extensions.Options;
 using NAuth.ACL;
 
+// Schema usa `timestamp without time zone`; mantém comportamento pré-Npgsql 6
+// aceitando DateTime com Kind=UTC sem conversão a timestamptz.
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Fortuno wiring (DI centralizado em Fortuno.Application/Startup)

@@ -13,24 +13,3 @@ public class LotteryImageInsertInfoValidator : AbstractValidator<LotteryImageIns
         RuleFor(x => x.DisplayOrder).GreaterThanOrEqualTo(0);
     }
 }
-
-public class RaffleInsertInfoValidator : AbstractValidator<Fortuno.DTO.Raffle.RaffleInsertInfo>
-{
-    public RaffleInsertInfoValidator()
-    {
-        RuleFor(x => x.LotteryId).GreaterThan(0);
-        RuleFor(x => x.Name).NotEmpty().Length(3, 160);
-        RuleFor(x => x.RaffleDatetime).NotEmpty();
-        RuleFor(x => x.VideoUrl).MaximumLength(500);
-    }
-}
-
-public class RaffleAwardInsertInfoValidator : AbstractValidator<Fortuno.DTO.RaffleAward.RaffleAwardInsertInfo>
-{
-    public RaffleAwardInsertInfoValidator()
-    {
-        RuleFor(x => x.RaffleId).GreaterThan(0);
-        RuleFor(x => x.Position).GreaterThan(0);
-        RuleFor(x => x.Description).NotEmpty().MaximumLength(300);
-    }
-}

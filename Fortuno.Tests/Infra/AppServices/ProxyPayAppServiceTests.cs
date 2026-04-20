@@ -1,3 +1,4 @@
+using Fortuno.DTO.ProxyPay;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -5,6 +6,8 @@ using FluentAssertions;
 using Fortuno.DTO.Settings;
 using Fortuno.Infra.AppServices;
 using Fortuno.Infra.Interfaces.AppServices;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
@@ -33,7 +36,8 @@ public class ProxyPayAppServiceTests
                 TenantId = "fortuna"
             }
         });
-        var sut = new ProxyPayAppService(http, options);
+        var httpContext = new HttpContextAccessor { HttpContext = new DefaultHttpContext() };
+        var sut = new ProxyPayAppService(http, options, httpContext, NullLogger<ProxyPayAppService>.Instance);
         return (sut, handler);
     }
 
@@ -47,13 +51,26 @@ public class ProxyPayAppServiceTests
     [Fact]
     public async Task GetStoreAsync_ShouldReturnStore_When200()
     {
-        var (sut, _) = CreateSut(Json(new { storeId = 10L, ownerUserId = 42L, name = "Loja" }));
+        var (sut, _) = CreateSut(Json(new
+        {
+            data = new { myStore = new[] { new { storeId = 10L, userId = 42L, name = "Loja" } } }
+        }));
 
         var result = await sut.GetStoreAsync(10);
 
         result.Should().NotBeNull();
         result!.StoreId.Should().Be(10);
         result.OwnerUserId.Should().Be(42);
+    }
+
+    [Fact]
+    public async Task GetStoreAsync_ShouldReturnNull_WhenStoreNotInList()
+    {
+        var (sut, _) = CreateSut(Json(new { data = new { myStore = Array.Empty<object>() } }));
+
+        var result = await sut.GetStoreAsync(10);
+
+        result.Should().BeNull();
     }
 
     [Fact]

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Fortuno.API.Controllers;
 
 [ApiController]
-[Route("api/purchases")]
+[Route("purchases")]
 public class PurchasesController : ControllerBase
 {
     private readonly IPurchaseService _purchases;
@@ -27,7 +27,7 @@ public class PurchasesController : ControllerBase
             var info = await _purchases.PreviewAsync(currentUserId, request);
             return Ok(info);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
 
@@ -40,7 +40,7 @@ public class PurchasesController : ControllerBase
             var info = await _purchases.ConfirmAsync(User.GetCurrentUserId(), request);
             return StatusCode(201, info);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
 }

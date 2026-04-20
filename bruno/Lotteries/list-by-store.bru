@@ -5,11 +5,15 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/lotteries/store/{{storeId}}
+  url: {{baseUrl}}/lotteries/store/{{storeId}}
   body: none
   auth: none
 }
 
 headers {
   Authorization: Basic {{accessToken}}
+}
+
+vars:pre-request {
+  storeId: 1
 }

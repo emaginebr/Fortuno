@@ -6,7 +6,7 @@ Contratos dos endpoints exercitados pelo `Fortuno.ApiTests` (User Story 1) e pel
 
 ---
 
-## POST `/api/lotteries` — Create
+## POST `/lotteries` — Create
 
 **Auth**: obrigatório (`Authorization: Basic {token}`).
 
@@ -45,7 +45,7 @@ Assertions negativas (unit tests do validator):
 
 ---
 
-## POST `/api/lotteries/{lotteryId}/publish`
+## POST `/lotteries/{lotteryId}/publish`
 
 **Auth**: obrigatório.
 
@@ -58,14 +58,14 @@ Response `200 OK`:
 ```
 
 Assertions (US1 #3):
-- A chamada subsequente `GET /api/lotteries/{id}` retorna `status: "Open"`.
+- A chamada subsequente `GET /lotteries/{id}` retorna `status: "Open"`.
 
 Assertion negativa (US1 #6):
 - Em Lottery `Cancelled`, retorna 4xx; fetch subsequente mantém `status: "Cancelled"`.
 
 ---
 
-## POST `/api/lotteries/{lotteryId}/close`
+## POST `/lotteries/{lotteryId}/close`
 
 **Auth**: obrigatório.
 
@@ -79,7 +79,7 @@ Assertion (US1 #4).
 
 ---
 
-## POST `/api/lotteries/{lotteryId}/cancel`
+## POST `/lotteries/{lotteryId}/cancel`
 
 **Auth**: obrigatório.
 
@@ -99,7 +99,7 @@ Assertion (US1 #5).
 
 ---
 
-## GET `/api/lotteries/{lotteryId}` — Public query
+## GET `/lotteries/{lotteryId}` — Public query
 
 **Auth**: `[AllowAnonymous]` (header `Authorization` ausente).
 
@@ -121,11 +121,11 @@ Assertion (US1 #7):
 
 ---
 
-## GET `/api/lotteries/slug/{slug}` — Public query by slug
+## GET `/lotteries/slug/{slug}` — Public query by slug
 
 **Auth**: `[AllowAnonymous]`.
 
-Response: idêntica ao `GET /api/lotteries/{id}`.
+Response: idêntica ao `GET /lotteries/{id}`.
 
 Assertion (US1 #7):
 
@@ -133,7 +133,7 @@ Assertion (US1 #7):
 
 ---
 
-## GET `/api/lotteries/store/{storeId}` — Consulta por store
+## GET `/lotteries/store/{storeId}` — Consulta por store
 
 **Auth**: obrigatório.
 
@@ -149,12 +149,12 @@ Estes contratos **não** são validados pelos ApiTests (apenas unit tests), conf
 
 | Endpoint | Status |
 |---|---|
-| `POST /api/raffles` | Deferred (aguarda payment simulado) |
-| `POST /api/raffles/{id}/winners/preview` | Deferred |
-| `POST /api/raffles/{id}/winners/confirm` | Deferred |
-| `POST /api/raffles/{id}/close` | Deferred |
-| `POST /api/purchases/preview` | Deferred |
-| `POST /api/purchases/confirm` | Deferred |
+| `POST /raffles` | Deferred (aguarda payment simulado) |
+| `POST /raffles/{id}/winners/preview` | Deferred |
+| `POST /raffles/{id}/winners/confirm` | Deferred |
+| `POST /raffles/{id}/close` | Deferred |
+| `POST /purchases/preview` | Deferred |
+| `POST /purchases/confirm` | Deferred |
 | `POST /webhooks/proxypay/invoice-paid` | Deferred (coberto por unit test do filtro HMAC) |
 
 Esses endpoints **permanecem** na Bruno collection (US3) para exploração manual, mas sem execução automatizada.

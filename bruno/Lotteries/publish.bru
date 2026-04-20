@@ -5,11 +5,15 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/api/lotteries/{{lotteryId}}/publish
+  url: {{baseUrl}}/lotteries/{{lotteryId}}/publish
   body: none
   auth: none
 }
 
 headers {
   Authorization: Basic {{accessToken}}
+}
+
+vars:pre-request {
+  lotteryId: 1
 }

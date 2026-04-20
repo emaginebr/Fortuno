@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Fortuno.API.Controllers;
 
 [ApiController]
-[Route("api/lottery-combos")]
+[Route("lottery-combos")]
 [Authorize]
 public class LotteryCombosController : ControllerBase
 {
@@ -26,7 +26,7 @@ public class LotteryCombosController : ControllerBase
             var info = await _combos.CreateAsync(User.GetCurrentUserId(), dto);
             return CreatedAtAction(nameof(ListByLottery), new { lotteryId = info.LotteryId }, info);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
@@ -39,7 +39,7 @@ public class LotteryCombosController : ControllerBase
             var info = await _combos.UpdateAsync(User.GetCurrentUserId(), comboId, dto);
             return Ok(info);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
@@ -52,7 +52,7 @@ public class LotteryCombosController : ControllerBase
             await _combos.DeleteAsync(User.GetCurrentUserId(), comboId);
             return NoContent();
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }

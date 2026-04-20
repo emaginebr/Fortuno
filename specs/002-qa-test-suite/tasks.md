@@ -54,7 +54,7 @@ description: "Task list for feature 002-qa-test-suite"
 - [X] T009 Criar `Fortuno.ApiTests/appsettings.Tests.example.json` com chaves `FortunoTests:ApiBaseUrl`, `FortunoTests:NAuthUrl`, `FortunoTests:NAuthTenant` (default `"fortuna"`), `FortunoTests:NAuthUser`, `FortunoTests:NAuthPassword`, `FortunoTests:ProxyPayUrl` — todos com placeholders vazios (referência: `contracts/auth-nauth.md`). **R-001 v2**: `StoreId` removido; Store é descoberta em runtime.
 - [X] T010 Criar `Fortuno.ApiTests/_Fixtures/TestSettings.cs` como `sealed record TestSettings(string ApiBaseUrl, string NAuthUrl, string NAuthTenant, string NAuthUser, string NAuthPassword, string ProxyPayUrl)` com método estático `FromEnvironment()` que lê env vars `FORTUNO_TEST_*` ou `appsettings.Tests.json` e lança `InvalidOperationException` com mensagem acionável se algum campo vier vazio (FR-018). **R-001 v2**: `StoreId` removido; descoberto em runtime via `ProxyPayStoreResolver`.
 - [X] T011 [P] Criar `Fortuno.ApiTests/_Fixtures/UniqueId.cs` com método `UniqueId.New(string prefix) => $"{prefix}-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("n").Substring(0, 8)}"` (FR-017, R-007)
-- [X] T012 Criar `Fortuno.ApiTests/_Fixtures/ApiSessionFixture.cs` implementando `IAsyncLifetime` conforme R-004: em `InitializeAsync()` lê `TestSettings`, faz `POST {NAuthUrl}/auth/login` com body `{tenant,user,password}`, captura `token`, instancia `FlurlClient(ApiBaseUrl).WithHeader("Authorization", $"Basic {token}")`, e valida ownership chamando `GET /api/lotteries/store/{StoreId}` (200 esperado; 4xx → lançar `InvalidOperationException` "Usuário não é dono da Store {id}"). Expor `Client` e `StoreId` como propriedades públicas. Registrar como `[CollectionDefinition("api")]`
+- [X] T012 Criar `Fortuno.ApiTests/_Fixtures/ApiSessionFixture.cs` implementando `IAsyncLifetime` conforme R-004: em `InitializeAsync()` lê `TestSettings`, faz `POST {NAuthUrl}/auth/login` com body `{tenant,user,password}`, captura `token`, instancia `FlurlClient(ApiBaseUrl).WithHeader("Authorization", $"Basic {token}")`, e valida ownership chamando `GET /lotteries/store/{StoreId}` (200 esperado; 4xx → lançar `InvalidOperationException` "Usuário não é dono da Store {id}"). Expor `Client` e `StoreId` como propriedades públicas. Registrar como `[CollectionDefinition("api")]`
 - [X] T013 Criar `Fortuno.Tests/coverlet.runsettings` conforme R-003 com excludes por assembly (`[*]*Settings`, `[*]Fortuno.Infra.Context.*`, `[*]*.Migrations.*`) e por arquivo (`**/Program.cs`, `**/Startup.cs`, `**/Migrations/*.cs`), formato Cobertura
 
 **Checkpoint Foundational**: fixture compila; rodar `dotnet build Fortuno.sln` sem erro. Sem env vars definidas, a fixture falha fast com mensagem clara (testado invocando `TestSettings.FromEnvironment()` num teste sentinel manual — opcional).
@@ -69,17 +69,17 @@ description: "Task list for feature 002-qa-test-suite"
 
 ### Implementation for User Story 1
 
-- [X] T014 [P] [US1] Criar `Fortuno.ApiTests/_Smoke/AuthenticationSmokeTests.cs` cobrindo Cenário US1 #1: classe `[Collection("api")]`, injeta `ApiSessionFixture`, teste `Login_ShouldObtainTokenAndAuthorizeAuthenticatedCall` que verifica que `fixture.Client` responde 200 em `GET /api/lotteries/store/{StoreId}` (prova que o token injetado pela fixture está ativo)
+- [X] T014 [P] [US1] Criar `Fortuno.ApiTests/_Smoke/AuthenticationSmokeTests.cs` cobrindo Cenário US1 #1: classe `[Collection("api")]`, injeta `ApiSessionFixture`, teste `Login_ShouldObtainTokenAndAuthorizeAuthenticatedCall` que verifica que `fixture.Client` responde 200 em `GET /lotteries/store/{StoreId}` (prova que o token injetado pela fixture está ativo)
 - [X] T015 [US1] Criar `Fortuno.ApiTests/Lotteries/LotteryLifecycleTests.cs` cobrindo Cenários US1 #2, #3, #4, #5, #6, #8. Classe `[Collection("api")]` com testes:
-  - `Create_ShouldReturnLotteryInDraftStatus` — POST `/api/lotteries` com `LotteryInsertInfo` usando `UniqueId.New("qa-lottery")` e `fixture.StoreId`; asserta 201 e `status == "Draft"`
+  - `Create_ShouldReturnLotteryInDraftStatus` — POST `/lotteries` com `LotteryInsertInfo` usando `UniqueId.New("qa-lottery")` e `fixture.StoreId`; asserta 201 e `status == "Draft"`
   - `Publish_FromDraft_ShouldTransitionToOpen` — cria + publish + GET; asserta `status == "Open"`
   - `Close_FromOpen_ShouldTransitionToClosed` — cria + publish + close + GET; asserta `status == "Closed"`
   - `Cancel_FromDraft_ShouldTransitionToCancelled` — cria + cancel (body com `reason`) + GET; asserta `status == "Cancelled"`
   - `Publish_OnCancelledLottery_ShouldReturn4xx` — cria + cancel + publish; asserta status >= 400 e que GET posterior mantém `status == "Cancelled"` (SC-007)
   - `SuiteIsIdempotent_WhenRunTwice` — dois ciclos create+publish+close back-to-back usando `UniqueId` distintos; ambos sucesso
 - [X] T016 [P] [US1] Criar `Fortuno.ApiTests/Lotteries/LotteryPublicQueryTests.cs` cobrindo Cenário US1 #7: classe `[Collection("api")]` com testes:
-  - `GetById_WithoutAuth_ShouldReturn200` — cria uma Lottery com cliente autenticado, depois faz `new FlurlRequest(…).GetAsync()` (sem header `Authorization`) em `/api/lotteries/{id}`; asserta 200 e payload com `lotteryId` igual
-  - `GetBySlug_WithoutAuth_ShouldReturn200` — idem com `/api/lotteries/slug/{slug}`
+  - `GetById_WithoutAuth_ShouldReturn200` — cria uma Lottery com cliente autenticado, depois faz `new FlurlRequest(…).GetAsync()` (sem header `Authorization`) em `/lotteries/{id}`; asserta 200 e payload com `lotteryId` igual
+  - `GetBySlug_WithoutAuth_ShouldReturn200` — idem com `/lotteries/slug/{slug}`
 
 **Checkpoint US1**: `dotnet test Fortuno.ApiTests` em ambiente preparado conclui < 3 min, 100% verde. User Story 1 é entregável/demonstrável como MVP.
 

@@ -239,7 +239,7 @@ components:
               purchases:      { type: integer }
 
 paths:
-  /api/lotteries:
+  /lotteries:
     post:
       summary: Cria Lottery em status Draft
       requestBody:
@@ -253,7 +253,7 @@ paths:
         '401': { description: Não autenticado }
         '403': { description: User não é proprietário da Store }
 
-  /api/lotteries/{lotteryId}:
+  /lotteries/{lotteryId}:
     put:
       summary: Atualiza Lottery (apenas em Draft)
       parameters:
@@ -272,7 +272,7 @@ paths:
         '403': { description: Não é dono }
         '404': { description: Não encontrado }
 
-  /api/lotteries/{lotteryId}/publish:
+  /lotteries/{lotteryId}/publish:
     post:
       summary: Transita Draft → Open (exige imagem + raffle + award)
       parameters:
@@ -285,7 +285,7 @@ paths:
         '400': { description: Requisitos não atendidos }
         '403': { description: Não é dono }
 
-  /api/lotteries/{lotteryId}/close:
+  /lotteries/{lotteryId}/close:
     post:
       summary: Transita Open → Closed
       parameters:
@@ -296,7 +296,7 @@ paths:
       responses:
         '200': { description: OK }
 
-  /api/lotteries/{lotteryId}/cancel:
+  /lotteries/{lotteryId}/cancel:
     post:
       summary: Transita → Cancelled (exige motivo ≥20 chars; irreversível)
       parameters:
@@ -313,7 +313,7 @@ paths:
         '200': { description: OK }
         '400': { description: Motivo insuficiente }
 
-  /api/lotteries/{lotteryId}/rules.pdf:
+  /lotteries/{lotteryId}/rules.pdf:
     get:
       summary: Baixa regras em PDF (gerado via zTools)
       parameters:
@@ -324,7 +324,7 @@ paths:
       responses:
         '200': { description: PDF, content: { application/pdf: { schema: { type: string, format: binary }}}}
 
-  /api/lotteries/{lotteryId}/privacy-policy.pdf:
+  /lotteries/{lotteryId}/privacy-policy.pdf:
     get:
       summary: Baixa política de privacidade em PDF
       parameters:
@@ -335,7 +335,7 @@ paths:
       responses:
         '200': { description: PDF }
 
-  /api/lottery-images:
+  /lottery-images:
     post:
       summary: Adiciona imagem (upload via zTools, apenas em Draft)
       requestBody:
@@ -346,7 +346,7 @@ paths:
       responses:
         '201': { description: Criado }
 
-  /api/lottery-images/{id}:
+  /lottery-images/{id}:
     delete:
       summary: Remove imagem (apenas em Draft)
       parameters:
@@ -357,7 +357,7 @@ paths:
       responses:
         '204': { description: Removido }
 
-  /api/lottery-combos:
+  /lottery-combos:
     post:
       summary: Cria combo de desconto (apenas em Draft)
       requestBody:
@@ -368,7 +368,7 @@ paths:
       responses:
         '201': { description: Criado }
 
-  /api/raffles:
+  /raffles:
     post:
       summary: Cria Raffle (apenas em Draft)
       requestBody:
@@ -379,7 +379,7 @@ paths:
       responses:
         '201': { description: Criado }
 
-  /api/raffles/{raffleId}/cancel:
+  /raffles/{raffleId}/cancel:
     post:
       summary: Cancela Raffle (exige redistribuição de awards)
       parameters:
@@ -396,7 +396,7 @@ paths:
         '200': { description: OK }
         '400': { description: Awards órfãos ou nenhum Raffle destino }
 
-  /api/raffle-awards:
+  /raffle-awards:
     post:
       summary: Adiciona prêmio (apenas em Draft)
       requestBody:
@@ -407,7 +407,7 @@ paths:
       responses:
         '201': { description: Criado }
 
-  /api/raffles/{raffleId}/winners/preview:
+  /raffles/{raffleId}/winners/preview:
     post:
       summary: Gera prévia de ganhadores sem persistir
       parameters:
@@ -429,7 +429,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/RaffleWinnerPreviewRow' }
 
-  /api/raffles/{raffleId}/winners/confirm:
+  /raffles/{raffleId}/winners/confirm:
     post:
       summary: Confirma ganhadores (grava RaffleWinner)
       parameters:
@@ -445,7 +445,7 @@ paths:
       responses:
         '201': { description: Gravado }
 
-  /api/raffles/{raffleId}/close:
+  /raffles/{raffleId}/close:
     post:
       summary: Fecha Raffle (imutável após)
       parameters:
@@ -456,7 +456,7 @@ paths:
       responses:
         '200': { description: OK }
 
-  /api/purchases/preview:
+  /purchases/preview:
     post:
       summary: Calcula preview de compra (combo, disponibilidade, desconto)
       requestBody:
@@ -471,7 +471,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/PurchasePreviewInfo' }
 
-  /api/purchases/confirm:
+  /purchases/confirm:
     post:
       summary: Cria Invoice no ProxyPay; reserva números em UserPicks
       requestBody:
@@ -486,7 +486,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/PurchaseConfirmResponse' }
 
-  /api/tickets/mine:
+  /tickets/mine:
     get:
       summary: Lista tickets do usuário autenticado
       parameters:
@@ -499,7 +499,7 @@ paths:
       responses:
         '200': { description: OK }
 
-  /api/referrals/me:
+  /referrals/me:
     get:
       summary: Painel do indicador (cálculo em tempo real)
       responses:
@@ -509,7 +509,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ReferrerEarningsPanel' }
 
-  /api/commissions/lottery/{lotteryId}:
+  /commissions/lottery/{lotteryId}:
     get:
       summary: Painel do dono — comissões a pagar (apenas consulta)
       parameters:
@@ -524,7 +524,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/LotteryCommissionsPanel' }
 
-  /api/refunds/pending/{lotteryId}:
+  /refunds/pending/{lotteryId}:
     get:
       summary: Lista tickets PendingRefund da Lottery (dono)
       parameters:
@@ -535,7 +535,7 @@ paths:
       responses:
         '200': { description: OK }
 
-  /api/refunds/mark-refunded:
+  /refunds/mark-refunded:
     post:
       summary: Muda status dos tickets PendingRefund → Refunded (manual)
       requestBody:

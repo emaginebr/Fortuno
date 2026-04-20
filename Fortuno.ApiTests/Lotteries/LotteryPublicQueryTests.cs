@@ -16,19 +16,19 @@ public class LotteryPublicQueryTests
         _fixture = fixture;
     }
 
-    // ---------- Cenário US1 #7 — GET /api/lotteries/{id} é [AllowAnonymous] ----------
+    // ---------- Cenário US1 #7 — GET /lotteries/{id} é [AllowAnonymous] ----------
     [Fact]
     public async Task GetById_WithoutAuth_ShouldReturn200()
     {
         var created = await CreateDraftAsync();
 
         var baseUrl = _fixture.Client.BaseUrl.TrimEnd('/');
-        var anonymousResponse = await new FlurlRequest($"{baseUrl}/api/lotteries/{created.LotteryId}")
+        var anonymousResponse = await new FlurlRequest($"{baseUrl}/lotteries/{created.LotteryId}")
             .AllowHttpStatus("2xx,4xx")
             .GetAsync();
 
         anonymousResponse.StatusCode.Should().Be(200,
-            "GET /api/lotteries/{id} é [AllowAnonymous] e deve responder sem Authorization header.");
+            "GET /lotteries/{id} é [AllowAnonymous] e deve responder sem Authorization header.");
 
         var info = await anonymousResponse.GetJsonAsync<LotteryInfo>();
         info.LotteryId.Should().Be(created.LotteryId);
@@ -41,12 +41,12 @@ public class LotteryPublicQueryTests
         created.Slug.Should().NotBeNullOrWhiteSpace();
 
         var baseUrl = _fixture.Client.BaseUrl.TrimEnd('/');
-        var anonymousResponse = await new FlurlRequest($"{baseUrl}/api/lotteries/slug/{created.Slug}")
+        var anonymousResponse = await new FlurlRequest($"{baseUrl}/lotteries/slug/{created.Slug}")
             .AllowHttpStatus("2xx,4xx")
             .GetAsync();
 
         anonymousResponse.StatusCode.Should().Be(200,
-            "GET /api/lotteries/slug/{slug} é [AllowAnonymous] e deve responder sem Authorization header.");
+            "GET /lotteries/slug/{slug} é [AllowAnonymous] e deve responder sem Authorization header.");
 
         var info = await anonymousResponse.GetJsonAsync<LotteryInfo>();
         info.Slug.Should().Be(created.Slug);
@@ -76,7 +76,7 @@ public class LotteryPublicQueryTests
         };
 
         var response = await _fixture.Client
-            .Request("api", "lotteries")
+            .Request("lotteries")
             .PostJsonAsync(dto);
         return await response.GetJsonAsync<LotteryInfo>();
     }

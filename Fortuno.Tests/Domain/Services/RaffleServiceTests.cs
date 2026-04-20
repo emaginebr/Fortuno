@@ -1,3 +1,4 @@
+using Fortuno.DTO.NAuth;
 using FluentAssertions;
 using Fortuno.Domain.Enums;
 using Fortuno.Domain.Interfaces;

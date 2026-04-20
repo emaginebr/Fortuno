@@ -16,14 +16,16 @@ public sealed class ApiSessionFixture : IAsyncLifetime
         var token = await LoginAsync(settings);
 
         Client = new FlurlClient(settings.ApiBaseUrl)
-            .WithHeader("Authorization", $"Basic {token}");
+            .WithHeader("Authorization", $"Basic {token}")
+            .WithHeader("X-Tenant-Id", settings.NAuthTenant);
 
         // Descobre a Store do usuário autenticado via GraphQL do ProxyPay
         // (R-001 v2: elimina dependência de FORTUNO_TEST_STORE_ID).
         StoreId = await ProxyPayStoreResolver.ResolveAsync(
             settings.ProxyPayUrl,
             token,
-            settings.NAuthTenant);
+            settings.NAuthTenant,
+            settings.NAuthUser);
 
         Console.WriteLine(
             $"[ApiSessionFixture] Autenticado no tenant '{settings.NAuthTenant}', " +
@@ -40,18 +42,20 @@ public sealed class ApiSessionFixture : IAsyncLifetime
     {
         try
         {
-            var response = await new FlurlRequest($"{settings.NAuthUrl}/auth/login")
+            var response = await new FlurlRequest($"{settings.NAuthUrl}/user/loginWithEmail")
+                .WithHeader("X-Tenant-Id", settings.NAuthTenant)
+                .WithHeader("User-Agent", "Fortuno.ApiTests/1.0")
+                .WithHeader("X-Device-Fingerprint", "fortuno-api-tests")
                 .PostJsonAsync(new
                 {
-                    tenant   = settings.NAuthTenant,
-                    user     = settings.NAuthUser,
+                    email    = settings.NAuthUser,
                     password = settings.NAuthPassword
                 })
                 .ReceiveJson<LoginResponse>();
 
             if (string.IsNullOrWhiteSpace(response?.Token))
                 throw new InvalidOperationException(
-                    $"NAuth retornou resposta sem token em {settings.NAuthUrl}/auth/login.");
+                    $"NAuth retornou resposta sem token em {settings.NAuthUrl}/user/loginWithEmail.");
 
             return response.Token;
         }
@@ -68,9 +72,4 @@ public sealed class ApiSessionFixture : IAsyncLifetime
     }
 
     private sealed record LoginResponse(string Token);
-}
-
-[CollectionDefinition("api")]
-public sealed class ApiCollection : ICollectionFixture<ApiSessionFixture>
-{
 }

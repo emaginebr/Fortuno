@@ -38,12 +38,12 @@ Um desenvolvedor ou pipeline de CI executa a suite de testes externos da API e, 
 **Acceptance Scenarios**:
 
 1. **Given** a Fortuno.API está rodando e o NAuth está acessível, **When** a suite executa, **Then** ela obtém um token de acesso do NAuth usando as credenciais e o tenant configurados, e reutiliza o token em todas as chamadas subsequentes dentro da mesma sessão de teste.
-2. **Given** o tester está autenticado, **When** ele cria uma Lottery (`POST /api/lotteries`) com payload válido, **Then** a Lottery é retornada com `LotteryStatus = Draft`.
-3. **Given** uma Lottery em `Draft`, **When** ela é publicada (`POST /api/lotteries/{id}/publish`), **Then** a Lottery transita para `Open`.
-4. **Given** uma Lottery em `Open`, **When** ela é fechada (`POST /api/lotteries/{id}/close`), **Then** a Lottery transita para `Closed`.
-5. **Given** uma Lottery em `Draft`, **When** ela é cancelada (`POST /api/lotteries/{id}/cancel`), **Then** a Lottery transita para `Cancelled`.
+2. **Given** o tester está autenticado, **When** ele cria uma Lottery (`POST /lotteries`) com payload válido, **Then** a Lottery é retornada com `LotteryStatus = Draft`.
+3. **Given** uma Lottery em `Draft`, **When** ela é publicada (`POST /lotteries/{id}/publish`), **Then** a Lottery transita para `Open`.
+4. **Given** uma Lottery em `Open`, **When** ela é fechada (`POST /lotteries/{id}/close`), **Then** a Lottery transita para `Closed`.
+5. **Given** uma Lottery em `Draft`, **When** ela é cancelada (`POST /lotteries/{id}/cancel`), **Then** a Lottery transita para `Cancelled`.
 6. **Given** uma Lottery já `Cancelled`, **When** uma tentativa de publish é feita, **Then** a API responde com erro de regra de negócio (status 4xx) e a Lottery permanece `Cancelled`.
-7. **Given** uma Lottery criada com slug conhecido, **When** `GET /api/lotteries/{id}` e `GET /api/lotteries/slug/{slug}` são chamados **sem** token (endpoints `[AllowAnonymous]`), **Then** ambos retornam a Lottery com status 200.
+7. **Given** uma Lottery criada com slug conhecido, **When** `GET /lotteries/{id}` e `GET /lotteries/slug/{slug}` são chamados **sem** token (endpoints `[AllowAnonymous]`), **Then** ambos retornam a Lottery com status 200.
 8. **Given** a suite completou, **When** uma segunda execução é iniciada imediatamente, **Then** ela roda sem interferência da anterior (isolamento por dados únicos por execução, ex.: slug/nome com timestamp ou Guid).
 
 ---
@@ -89,7 +89,7 @@ Um novo integrante do time (dev, QA, PO técnico) clona o repositório, abre a p
 - **Dados residuais entre execuções**: Se uma execução anterior falhou no meio, como a próxima execução lida com dados órfãos (Lottery em `Open` com mesmo slug)? Expectativa: cada execução usa identificadores únicos para evitar colisão; limpeza agressiva não é requerida.
 - **NAuth indisponível**: O que acontece se o NAuth estiver offline durante a execução dos ApiTests? Expectativa: a fixture falha cedo, com mensagem clara, sem tentar rodar os demais testes.
 - **Cobertura bate 80% mas com testes fracos**: O stakeholder aceita que 80% é um piso, não um teto, e que revisão de PR continua responsável por qualidade de assertividade.
-- **Endpoint `[AllowAnonymous]`** (ex.: `GET /api/lotteries/{id}`, `GET /api/lotteries/slug/{slug}`, `WebhooksController`): devem ser exercitados sem header de autorização nos ApiTests e na Bruno collection.
+- **Endpoint `[AllowAnonymous]`** (ex.: `GET /lotteries/{id}`, `GET /lotteries/slug/{slug}`, `WebhooksController`): devem ser exercitados sem header de autorização nos ApiTests e na Bruno collection.
 - **Raffle / Purchase / Webhook ProxyPay**: fora do escopo dos ApiTests nesta entrega (fluxo de pagamento simulado ainda não existe); permanecem cobertos apenas por testes unitários.
 
 ## Requirements *(mandatory)*
@@ -119,7 +119,7 @@ Um novo integrante do time (dev, QA, PO técnico) clona o repositório, abre a p
 - **FR-013**: O projeto MUST incluir um projeto separado `Fortuno.ApiTests` (distinto de `Fortuno.Tests`) usando xUnit + Flurl.Http + FluentAssertions, alinhado ao preset `dotnet-test-api` do repositório.
 - **FR-014**: O `Fortuno.ApiTests` MUST autenticar-se uma vez por execução de suite, via uma fixture compartilhada (`IAsyncLifetime`), contra a API do NAuth, usando o tenant configurado em variáveis de ambiente, e propagar o token para todas as chamadas.
 - **FR-015**: A suite MUST cobrir o ciclo de vida de Lottery (Draft → Publish → Close; e Draft → Cancel), transições inválidas (ex.: publish em Lottery `Cancelled`) e os endpoints `[AllowAnonymous]` de consulta (por id e por slug), conforme os Acceptance Scenarios da User Story 1.
-- **FR-016**: Os endpoints de **Raffle** (`/api/raffles*`, incluindo `winners/preview`, `winners/confirm`, `close`), **Purchase** (`/api/purchases/*`) e **Webhook ProxyPay** (`/webhooks/proxypay/*`) MUST ser explicitamente **excluídos** desta entrega nos ApiTests; serão endereçados em uma entrega futura, após existir um fluxo simulado de pagamento capaz de criar tickets reais.
+- **FR-016**: Os endpoints de **Raffle** (`/raffles*`, incluindo `winners/preview`, `winners/confirm`, `close`), **Purchase** (`/purchases/*`) e **Webhook ProxyPay** (`/webhooks/proxypay/*`) MUST ser explicitamente **excluídos** desta entrega nos ApiTests; serão endereçados em uma entrega futura, após existir um fluxo simulado de pagamento capaz de criar tickets reais.
 - **FR-017**: Cada execução da suite MUST usar identificadores únicos (ex.: slug/nome sufixados por Guid/timestamp) para evitar colisão entre execuções consecutivas.
 - **FR-018**: Falhas de pré-requisito (NAuth indisponível, credenciais ausentes, API não responde) MUST interromper a suite cedo com mensagem acionável, sem executar os cenários de negócio.
 - **FR-019**: Variáveis sensíveis (credenciais NAuth, URL da API) MUST ser lidas de variáveis de ambiente ou de um `appsettings.Tests.json` não versionado, com um `*.example` versionado.

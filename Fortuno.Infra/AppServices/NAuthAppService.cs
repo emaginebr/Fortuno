@@ -1,3 +1,4 @@
+using Fortuno.DTO.NAuth;
 using Fortuno.Infra.Interfaces.AppServices;
 using Microsoft.AspNetCore.Http;
 using NAuth.ACL.Interfaces;

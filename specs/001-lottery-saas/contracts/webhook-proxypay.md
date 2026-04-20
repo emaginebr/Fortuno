@@ -46,7 +46,7 @@ O Fortuno recalcula o HMAC com o segredo configurado em
 | `tenant` | string | Deve ser `"fortuna"`. Caso contrário, 401/403. |
 | `data.invoiceId` | int64 | Chave primária da deduplicação. |
 | `data.amount` | decimal | Registrado como `Invoice.PaidAmount` para cálculo de comissão. |
-| `data.metadata.fortunoPurchaseId` | string | Correlaciona com o purchase iniciado em `/api/purchases/confirm`. |
+| `data.metadata.fortunoPurchaseId` | string | Correlaciona com o purchase iniciado em `/purchases/confirm`. |
 
 ## Processamento (comportamento obrigatório)
 

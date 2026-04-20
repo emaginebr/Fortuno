@@ -22,17 +22,3 @@ public class LotteryComboInsertInfo
     [JsonPropertyName("quantityEnd")]
     public int QuantityEnd { get; set; }
 }
-
-public class LotteryComboUpdateInfo : LotteryComboInsertInfo { }
-
-public class LotteryComboInfo : LotteryComboInsertInfo
-{
-    [JsonPropertyName("lotteryComboId")]
-    public long LotteryComboId { get; set; }
-
-    [JsonPropertyName("createdAt")]
-    public DateTime CreatedAt { get; set; }
-
-    [JsonPropertyName("updatedAt")]
-    public DateTime UpdatedAt { get; set; }
-}

@@ -430,6 +430,7 @@ FodyWeavers.xsd
 
 # ApiTests — configuração local com segredos (usar appsettings.Tests.example.json como template)
 Fortuno.ApiTests/appsettings.Tests.json
+Fortuno.ApiTests/appsettings.json
 
 # Bruno — ambientes reais (com credenciais). Apenas *.example.bru é versionado.
 bruno/environments/local.bru

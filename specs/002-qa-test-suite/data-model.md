@@ -26,7 +26,7 @@ Esta feature **não cria** nenhuma entidade nova. Os testes exercitam entidades 
 
 ```text
   ┌──────────────┐
-  │    Draft     │◄── criação (POST /api/lotteries)
+  │    Draft     │◄── criação (POST /lotteries)
   └──┬───────────┘
      │ publish  ─────────► (FR-015)
      │ cancel   ─────────►

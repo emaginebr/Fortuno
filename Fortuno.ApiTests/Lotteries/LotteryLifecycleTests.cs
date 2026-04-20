@@ -23,7 +23,7 @@ public class LotteryLifecycleTests
         var dto = BuildValidInsertInfo(UniqueId.New("qa-lottery"));
 
         var response = await _fixture.Client
-            .Request("api", "lotteries")
+            .Request("lotteries")
             .AllowHttpStatus("2xx,4xx")
             .PostJsonAsync(dto);
 
@@ -41,7 +41,7 @@ public class LotteryLifecycleTests
         var created = await CreateDraftAsync();
 
         var publishResponse = await _fixture.Client
-            .Request("api", "lotteries", created.LotteryId, "publish")
+            .Request("lotteries", created.LotteryId, "publish")
             .AllowHttpStatus("2xx,4xx")
             .PostAsync();
 
@@ -66,12 +66,12 @@ public class LotteryLifecycleTests
         var created = await CreateDraftAsync();
 
         await _fixture.Client
-            .Request("api", "lotteries", created.LotteryId, "publish")
+            .Request("lotteries", created.LotteryId, "publish")
             .AllowHttpStatus("2xx,4xx")
             .PostAsync();
 
         var closeResponse = await _fixture.Client
-            .Request("api", "lotteries", created.LotteryId, "close")
+            .Request("lotteries", created.LotteryId, "close")
             .AllowHttpStatus("2xx,4xx")
             .PostAsync();
 
@@ -93,7 +93,7 @@ public class LotteryLifecycleTests
         var created = await CreateDraftAsync();
 
         var cancelResponse = await _fixture.Client
-            .Request("api", "lotteries", created.LotteryId, "cancel")
+            .Request("lotteries", created.LotteryId, "cancel")
             .AllowHttpStatus("2xx,4xx")
             .PostJsonAsync(new LotteryCancelRequest
             {
@@ -114,7 +114,7 @@ public class LotteryLifecycleTests
 
         // Cancela a Lottery Draft
         var cancelResponse = await _fixture.Client
-            .Request("api", "lotteries", created.LotteryId, "cancel")
+            .Request("lotteries", created.LotteryId, "cancel")
             .AllowHttpStatus("2xx,4xx")
             .PostJsonAsync(new LotteryCancelRequest
             {
@@ -124,7 +124,7 @@ public class LotteryLifecycleTests
 
         // Tenta publicar depois de cancelada — deve falhar
         var publishResponse = await _fixture.Client
-            .Request("api", "lotteries", created.LotteryId, "publish")
+            .Request("lotteries", created.LotteryId, "publish")
             .AllowHttpStatus("2xx,4xx,5xx")
             .PostAsync();
 
@@ -160,16 +160,25 @@ public class LotteryLifecycleTests
     private async Task<LotteryInfo> CreateDraftAsync()
     {
         var dto = BuildValidInsertInfo(UniqueId.New("qa-lottery"));
-        var response = await _fixture.Client
-            .Request("api", "lotteries")
-            .PostJsonAsync(dto);
-        return await response.GetJsonAsync<LotteryInfo>();
+        try
+        {
+            var response = await _fixture.Client
+                .Request("lotteries")
+                .PostJsonAsync(dto);
+            return await response.GetJsonAsync<LotteryInfo>();
+        }
+        catch (FlurlHttpException ex)
+        {
+            var body = ex.Call?.Response is null ? "<sem body>" : await ex.Call.Response.GetStringAsync();
+            throw new InvalidOperationException(
+                $"POST /lotteries falhou com {ex.StatusCode}. Body: {body}", ex);
+        }
     }
 
     private async Task<LotteryInfo> GetLotteryAsync(long lotteryId)
     {
         return await _fixture.Client
-            .Request("api", "lotteries", lotteryId)
+            .Request("lotteries", lotteryId)
             .GetJsonAsync<LotteryInfo>();
     }
 

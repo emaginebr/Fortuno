@@ -87,8 +87,8 @@ idempotency, enums, erros, DI.
 Lottery em Draft com imagem, raffle e prêmio, e publicar (Draft → Open).
 
 **Independent Test**: criar conta nova, completar cadastro, criar Store,
-`POST /api/lotteries` → `POST /api/lottery-images` → `POST /api/raffles` →
-`POST /api/raffle-awards` → `POST /api/lotteries/{id}/publish` e verificar
+`POST /lotteries` → `POST /lottery-images` → `POST /raffles` →
+`POST /raffle-awards` → `POST /lotteries/{id}/publish` e verificar
 status `Open`.
 
 ### Implementation for User Story 1
@@ -103,13 +103,13 @@ status `Open`.
 - [X] T044 [P] [US1] Criar `ILotteryImageService` + `LotteryImageService` em Domain, com bloqueio de CRUD fora de `Draft` (FR-018).
 - [X] T045 [P] [US1] Criar `IRaffleService` (somente Create/List/Get por enquanto; Cancel e Close ficam em US4/US3) + implementação em `Fortuno.Domain/Services/RaffleService.cs`.
 - [X] T046 [P] [US1] Criar `IRaffleAwardService` + implementação básica (create/list) em Domain.
-- [X] T047 [US1] Implementar `Fortuno.API/Controllers/LotteriesController.cs` com rotas: `POST /api/lotteries`, `PUT /api/lotteries/{id}`, `POST /api/lotteries/{id}/publish`, `POST /api/lotteries/{id}/close`, `POST /api/lotteries/{id}/cancel`. Todos com `[Authorize]` e checagem de ownership.
-- [X] T048 [US1] Implementar `GET /api/lotteries/{id}/rules.pdf` e `GET /api/lotteries/{id}/privacy-policy.pdf` em `LotteriesController` gerando PDF via `IZToolsAppService.GeneratePdfFromMarkdownAsync` a partir do Markdown persistido.
-- [X] T049 [US1] Implementar `Fortuno.API/Controllers/LotteryImagesController.cs` com `POST /api/lottery-images` (upload via zTools) e `DELETE /api/lottery-images/{id}` (bloqueado fora de Draft).
-- [X] T050 [US1] Implementar `Fortuno.API/Controllers/RafflesController.cs` com `POST /api/raffles` (criar em Lottery Draft).
-- [X] T051 [US1] Implementar `Fortuno.API/Controllers/RaffleAwardsController.cs` com `POST /api/raffle-awards` (criar em Lottery Draft).
+- [X] T047 [US1] Implementar `Fortuno.API/Controllers/LotteriesController.cs` com rotas: `POST /lotteries`, `PUT /lotteries/{id}`, `POST /lotteries/{id}/publish`, `POST /lotteries/{id}/close`, `POST /lotteries/{id}/cancel`. Todos com `[Authorize]` e checagem de ownership.
+- [X] T048 [US1] Implementar `GET /lotteries/{id}/rules.pdf` e `GET /lotteries/{id}/privacy-policy.pdf` em `LotteriesController` gerando PDF via `IZToolsAppService.GeneratePdfFromMarkdownAsync` a partir do Markdown persistido.
+- [X] T049 [US1] Implementar `Fortuno.API/Controllers/LotteryImagesController.cs` com `POST /lottery-images` (upload via zTools) e `DELETE /lottery-images/{id}` (bloqueado fora de Draft).
+- [X] T050 [US1] Implementar `Fortuno.API/Controllers/RafflesController.cs` com `POST /raffles` (criar em Lottery Draft).
+- [X] T051 [US1] Implementar `Fortuno.API/Controllers/RaffleAwardsController.cs` com `POST /raffle-awards` (criar em Lottery Draft).
 - [X] T052 [US1] Implementar `LotteryService.PublishAsync`: validar existência de ≥1 LotteryImage, ≥1 Raffle, ≥1 RaffleAward; para tipos compostos validar `ticket_num_end > ticket_num_ini`; transicionar para `Open` (FR-016).
-- [X] T053 [US1] Implementar `LotteryService.CalculatePossibilitiesAsync` consumindo `INumberCompositionService` (FR-013); expor via rota `GET /api/lotteries/{id}/possibilities`.
+- [X] T053 [US1] Implementar `LotteryService.CalculatePossibilitiesAsync` consumindo `INumberCompositionService` (FR-013); expor via rota `GET /lotteries/{id}/possibilities`.
 - [X] T054 [US1] Registrar todos os novos services de US1 no `Application/Startup.cs`.
 - [X] T055 [US1] Adicionar ao Program.cs o middleware que auto-cria `UserReferrer` no primeiro acesso autenticado (FR-R02) — pré-requisito para painéis aparecerem vazios em vez de 404.
 
@@ -125,7 +125,7 @@ e recebe tickets imediatamente após webhook.
 
 **Independent Test**: dada uma Lottery `Open`, fluxo completo
 `preview → confirm → simular webhook` e verificar tickets em
-`GET /api/tickets/mine`.
+`GET /tickets/mine`.
 
 ### Implementation for User Story 2
 
@@ -141,15 +141,15 @@ e recebe tickets imediatamente após webhook.
   - Modo `UserPicks`: promover reservas → tickets.
   - Em caso de reserva expirada, marcar invoice como `PendingRefund` sem emitir tickets.
   - Persistir `InvoiceReferrer` quando `referralCode` presente.
-- [X] T064 [US2] Implementar `Fortuno.API/Controllers/PurchasesController.cs` com rotas `POST /api/purchases/preview` (não autenticada se comprador ainda não criou conta — middleware permite; mas preenche `ReferrerUserId` só se `referralCode` válido) e `POST /api/purchases/confirm` (requer autenticação simples NAuth).
+- [X] T064 [US2] Implementar `Fortuno.API/Controllers/PurchasesController.cs` com rotas `POST /purchases/preview` (não autenticada se comprador ainda não criou conta — middleware permite; mas preenche `ReferrerUserId` só se `referralCode` válido) e `POST /purchases/confirm` (requer autenticação simples NAuth).
 - [X] T065 [US2] Implementar `Fortuno.API/Controllers/WebhooksController.cs` com `POST /webhooks/proxypay/invoice-paid`, protegido pelo `ProxyPayWebhookHmacFilter` (T035); delega ao `PurchaseService.ProcessPaidWebhookAsync`.
 - [X] T066 [US2] Criar `ITicketService` + `TicketService` em Domain com `ListForUserAsync(userId, filter)` e `GetByIdAsync` (para listar/pesquisar "Meus Tickets", FR-033).
-- [X] T067 [US2] Implementar `Fortuno.API/Controllers/TicketsController.cs` com `GET /api/tickets/mine` (filtros `lotteryId`, `number`, `date`).
+- [X] T067 [US2] Implementar `Fortuno.API/Controllers/TicketsController.cs` com `GET /tickets/mine` (filtros `lotteryId`, `number`, `date`).
 - [X] T068 [US2] Implementar validador `PurchaseRequestValidator` (tanto preview quanto confirm): `quantity ≥ 1` e dentro de `[ticket_min, ticket_max]` quando > 0; `mode ∈ {Random, UserPicks}`; para `UserPicks` validar `pickedNumbers.Count == quantity` e cada número válido no pool/faixa composta via `INumberCompositionService`.
 - [X] T069 [US2] Validar auto-indicação (FR-R04) no `PurchaseService.PreviewAsync` e `.ConfirmAsync`: comparar `referralCode` com o código do `currentUserId`; rejeitar.
 - [X] T070 [US2] Implementar `IUserReferrerService.GetOrCreateCodeForUserAsync` em Domain gerando código de 8 chars (alfabeto A-Z sem I/O + 2-9) com retry em colisão (FR-R02/R02a).
 - [X] T071 [US2] Registrar novos services de US2 no `Application/Startup.cs`.
-- [X] T072 [US2] Adicionar rota `GET /api/lotteries/{id}/possibilities` em `LotteriesController` já prevista em T053, garantir que retorna também `availableTickets` (usado pela UI antes de abrir compra).
+- [X] T072 [US2] Adicionar rota `GET /lotteries/{id}/possibilities` em `LotteriesController` já prevista em T053, garantir que retorna também `availableTickets` (usado pela UI antes de abrir compra).
 - [X] T073 [US2] Teste manual smoke via `curl`/Postman do fluxo quickstart §4.6–4.9; ajustar rotas/response se divergir de `contracts/rest-openapi.yaml`.
 
 **Checkpoint**: US2 funcional — ciclo de compra PIX completo com tickets emitidos.
@@ -162,7 +162,7 @@ e recebe tickets imediatamente após webhook.
 pode repetir até fechar o Raffle. Flag `IncludePreviousWinners` respeitado.
 
 **Independent Test**: Lottery `Open` com tickets vendidos → `POST
-/api/raffles/{id}/winners/preview` → `POST .../confirm` → `POST .../close` →
+/raffles/{id}/winners/preview` → `POST .../confirm` → `POST .../close` →
 tentativa posterior de alteração retorna 400.
 
 ### Implementation for User Story 3
@@ -173,7 +173,7 @@ tentativa posterior de alteração retorna 400.
 - [X] T077 [US3] Implementar `RaffleService.PreviewWinnersAsync` em `Fortuno.Domain/Services/RaffleService.cs`: para cada `winningNumber` faz lookup no `TicketRepository`; aplica regra `IncludePreviousWinners` (FR-034a/b); retorna linhas com status (matched/sem-ganhador/excluded-by-flag); busca `User` via `NAuthAppService` e mascara CPF.
 - [X] T078 [US3] Implementar `RaffleService.ConfirmWinnersAsync`: persiste `RaffleWinner` por posição (denormaliza `position` e `prizeText` do Award); bloqueia se Raffle já `Closed` (FR-042).
 - [X] T079 [US3] Implementar `RaffleService.CloseAsync`: transição `Open → Closed` torna ganhadores imutáveis.
-- [X] T080 [US3] Implementar rotas em `RafflesController`: `POST /api/raffles/{id}/winners/preview`, `POST /api/raffles/{id}/winners/confirm`, `POST /api/raffles/{id}/close`. `[Authorize]` + ownership check.
+- [X] T080 [US3] Implementar rotas em `RafflesController`: `POST /raffles/{id}/winners/preview`, `POST /raffles/{id}/winners/confirm`, `POST /raffles/{id}/close`. `[Authorize]` + ownership check.
 - [X] T081 [US3] Validar que cada posição de um mesmo Raffle aceite ticket distinto (constraint do banco + validação em service).
 - [X] T082 [US3] Alertar prévia-vazia quando `IncludePreviousWinners = false` e pool elegível estiver vazio (edge case da spec).
 - [X] T083 [US3] Registrar services atualizados no `Application/Startup.cs`.
@@ -189,7 +189,7 @@ enquanto Lottery em `Draft`, incluindo cancelamento de Raffle com
 redistribuição obrigatória.
 
 **Independent Test**: Lottery `Draft`, criar/editar/deletar cada entidade;
-em Lottery `Open` confirmar 400; `POST /api/raffles/{id}/cancel` com
+em Lottery `Open` confirmar 400; `POST /raffles/{id}/cancel` com
 redistribuição válida muda status.
 
 ### Implementation for User Story 4
@@ -200,12 +200,12 @@ redistribuição válida muda status.
 - [X] T087 [US4] Expandir `IRaffleService` com `UpdateAsync`, `DeleteAsync` (apenas Draft, FR-037) e `CancelAsync` com redistribuição obrigatória de awards (FR-042a/b/c).
 - [X] T088 [US4] Expandir `IRaffleAwardService` com `UpdateAsync`, `DeleteAsync`, `ListByRaffleAsync`, `ReassignToRaffleAsync` (usado pela redistribuição).
 - [X] T089 [US4] Implementar `Fortuno.API/Controllers/LotteryCombosController.cs` com `POST`, `PUT /{id}`, `DELETE /{id}`, `GET /{lotteryId}`.
-- [X] T090 [US4] Adicionar rotas em `RafflesController`: `PUT /api/raffles/{id}`, `DELETE /api/raffles/{id}`, `POST /api/raffles/{id}/cancel` (recebe `RaffleCancelRequest`).
-- [X] T091 [US4] Adicionar rotas em `RaffleAwardsController`: `PUT /api/raffle-awards/{id}`, `DELETE /api/raffle-awards/{id}`, `GET /api/raffle-awards?raffleId=...`.
-- [X] T092 [US4] Expandir `LotteryImagesController` com `PUT /api/lottery-images/{id}` (editar descrição/ordem).
+- [X] T090 [US4] Adicionar rotas em `RafflesController`: `PUT /raffles/{id}`, `DELETE /raffles/{id}`, `POST /raffles/{id}/cancel` (recebe `RaffleCancelRequest`).
+- [X] T091 [US4] Adicionar rotas em `RaffleAwardsController`: `PUT /raffle-awards/{id}`, `DELETE /raffle-awards/{id}`, `GET /raffle-awards?raffleId=...`.
+- [X] T092 [US4] Expandir `LotteryImagesController` com `PUT /lottery-images/{id}` (editar descrição/ordem).
 - [X] T093 [US4] Implementar validadores FluentValidation para `LotteryComboInsertInfo` (com check de sobreposição), `RaffleInsertInfo`, `RaffleAwardInsertInfo`, `RaffleCancelRequest` (deve cobrir 100% dos awards órfãos).
 - [X] T094 [US4] Refund flow (parte de cancelamento de Lottery): criar `IRefundService` + `RefundService` com `ListPendingByLotteryAsync`, `MarkRefundedAsync(ticketIds, externalReference)` gerando `RefundLog` (FR-033a/b/c).
-- [X] T095 [US4] Implementar `Fortuno.API/Controllers/RefundsController.cs` com `GET /api/refunds/pending/{lotteryId}` e `POST /api/refunds/mark-refunded`. Sem qualquer chamada de pagamento (FR-033b).
+- [X] T095 [US4] Implementar `Fortuno.API/Controllers/RefundsController.cs` com `GET /refunds/pending/{lotteryId}` e `POST /refunds/mark-refunded`. Sem qualquer chamada de pagamento (FR-033b).
 - [X] T096 [US4] No `LotteryService.CancelAsync` (já existe em US1), garantir marcação de todos os Tickets ativos como `PendingRefund` (FR-033a).
 - [X] T097 [US4] Registrar todos os novos services de US4 no `Application/Startup.cs`.
 
@@ -231,8 +231,8 @@ código; ambos os painéis exibem valores corretos; marcar um ticket como
 - [X] T101 [US5] Implementar `ReferralService.GetPayablesForLotteryAsync` — mesma lógica mas pivotada por indicador para o painel do dono; exige que `currentUserId == Lottery.Store.OwnerUserId` (FR-R09 + FR-045a).
 - [X] T102 [US5] No `PurchaseService` (T061/T063), chamar `ReferralService.ValidateCodeAsync` no preview/confirm e `RegisterInvoiceReferrerAsync` dentro do webhook.
 - [X] T103 [US5] Garantir que `ReferralService` nunca chame `ProxyPay` para movimentar valores (FR-R10; SC-011).
-- [X] T104 [P] [US5] Implementar `Fortuno.API/Controllers/ReferralsController.cs` com `GET /api/referrals/me` (painel do indicador autenticado) e `GET /api/referrals/code/me` (retorna o código gerado/criado lazy).
-- [X] T105 [P] [US5] Implementar `Fortuno.API/Controllers/CommissionsController.cs` com `GET /api/commissions/lottery/{lotteryId}` (painel do dono) — apenas leitura, sem botão de pagar.
+- [X] T104 [P] [US5] Implementar `Fortuno.API/Controllers/ReferralsController.cs` com `GET /referrals/me` (painel do indicador autenticado) e `GET /referrals/code/me` (retorna o código gerado/criado lazy).
+- [X] T105 [P] [US5] Implementar `Fortuno.API/Controllers/CommissionsController.cs` com `GET /commissions/lottery/{lotteryId}` (painel do dono) — apenas leitura, sem botão de pagar.
 - [X] T106 [US5] Registrar `IReferralService` no `Application/Startup.cs`.
 - [X] T107 [US5] Edge case "indicador órfão": quando `NAuthAppService.GetByIdAsync` retornar 404, o painel exibe `referrerName = null` e a UI marca "indicador indisponível" (FR-R04/R05).
 

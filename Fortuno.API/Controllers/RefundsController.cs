@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Fortuno.API.Controllers;
 
 [ApiController]
-[Route("api/refunds")]
+[Route("refunds")]
 [Authorize]
 public class RefundsController : ControllerBase
 {
@@ -26,7 +26,7 @@ public class RefundsController : ControllerBase
             var list = await _refunds.ListPendingByLotteryAsync(User.GetCurrentUserId(), lotteryId);
             return Ok(list);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
     }
 
@@ -38,7 +38,7 @@ public class RefundsController : ControllerBase
             var count = await _refunds.MarkRefundedAsync(User.GetCurrentUserId(), request);
             return Ok(new { updated = count });
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }

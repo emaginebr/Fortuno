@@ -8,13 +8,3 @@ public class FortunoSettings
     public ZToolsSettings ZTools { get; set; } = new();
     public CorsSettings Cors { get; set; } = new();
 }
-
-public class DatabaseSettings
-{
-    public string ConnectionString { get; set; } = string.Empty;
-}
-
-public class CorsSettings
-{
-    public bool AllowAnyOrigin { get; set; }
-}

@@ -200,7 +200,7 @@ esteja offline. Confirmar que a saída respeita:
 ## Como o Fortuno se comporta quando algo está pendente
 
 - NAuth offline → controllers retornam 401 nas rotas autenticadas.
-- ProxyPay offline → `POST /api/purchases/confirm` retorna 5xx.
+- ProxyPay offline → `POST /purchases/confirm` retorna 5xx.
 - Webhook não assinado ou sem tenant → `401 Unauthorized` no Fortuno.
 - zTools offline no upload → `InvalidOperationException` que cai para
   500 pelo exception handler.

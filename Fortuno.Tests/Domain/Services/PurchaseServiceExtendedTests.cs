@@ -1,3 +1,4 @@
+using Fortuno.DTO.ProxyPay;
 using FluentAssertions;
 using Fortuno.Domain.Enums;
 using Fortuno.Domain.Interfaces;

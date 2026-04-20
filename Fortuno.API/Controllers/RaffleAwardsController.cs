@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Fortuno.API.Controllers;
 
 [ApiController]
-[Route("api/raffle-awards")]
+[Route("raffle-awards")]
 [Authorize]
 public class RaffleAwardsController : ControllerBase
 {
@@ -26,7 +26,7 @@ public class RaffleAwardsController : ControllerBase
             var info = await _awards.CreateAsync(User.GetCurrentUserId(), dto);
             return CreatedAtAction(nameof(ListByRaffle), new { raffleId = info.RaffleId }, info);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
@@ -39,7 +39,7 @@ public class RaffleAwardsController : ControllerBase
             var info = await _awards.UpdateAsync(User.GetCurrentUserId(), awardId, dto);
             return Ok(info);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
@@ -52,7 +52,7 @@ public class RaffleAwardsController : ControllerBase
             await _awards.DeleteAsync(User.GetCurrentUserId(), awardId);
             return NoContent();
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }

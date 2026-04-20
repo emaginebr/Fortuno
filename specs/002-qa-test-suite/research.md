@@ -9,7 +9,7 @@ Esta fase resolve os pontos ainda abertos após `/speckit.clarify` e registra as
 
 ## R-001 — Provisionamento de Store (achado crítico)
 
-**Pergunta**: Como a fixture dos ApiTests obtém um `StoreId` válido para o `POST /api/lotteries`?
+**Pergunta**: Como a fixture dos ApiTests obtém um `StoreId` válido para o `POST /lotteries`?
 
 ### v2 (atual) — descoberta via GraphQL do ProxyPay
 

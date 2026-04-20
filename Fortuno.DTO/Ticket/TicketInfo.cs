@@ -26,18 +26,3 @@ public class TicketInfo
     [JsonPropertyName("createdAt")]
     public DateTime CreatedAt { get; set; }
 }
-
-public class TicketSearchQuery
-{
-    [JsonPropertyName("lotteryId")]
-    public long? LotteryId { get; set; }
-
-    [JsonPropertyName("number")]
-    public long? Number { get; set; }
-
-    [JsonPropertyName("fromDate")]
-    public DateTime? FromDate { get; set; }
-
-    [JsonPropertyName("toDate")]
-    public DateTime? ToDate { get; set; }
-}

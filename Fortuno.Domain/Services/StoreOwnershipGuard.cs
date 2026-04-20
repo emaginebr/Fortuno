@@ -20,7 +20,12 @@ public class StoreOwnershipGuard : IStoreOwnershipGuard
 
     public async Task EnsureOwnershipAsync(long storeId, long userId)
     {
-        if (!await IsOwnerAsync(storeId, userId))
-            throw new UnauthorizedAccessException($"User {userId} não é proprietário da Store {storeId}.");
+        var store = await _proxyPay.GetStoreAsync(storeId);
+        if (store is null)
+            throw new UnauthorizedAccessException(
+                $"Store {storeId} não encontrada no ProxyPay (para o usuário {userId}).");
+        if (store.OwnerUserId != userId)
+            throw new UnauthorizedAccessException(
+                $"User {userId} não é proprietário da Store {storeId} (dono={store.OwnerUserId}).");
     }
 }

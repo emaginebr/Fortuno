@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Fortuno.API.Controllers;
 
 [ApiController]
-[Route("api/commissions")]
+[Route("commissions")]
 [Authorize]
 public class CommissionsController : ControllerBase
 {
@@ -25,7 +25,7 @@ public class CommissionsController : ControllerBase
             var panel = await _referrals.GetPayablesForLotteryAsync(User.GetCurrentUserId(), lotteryId);
             return Ok(panel);
         }
-        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.Fail(ex.Message)); }
+        catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
     }
 }

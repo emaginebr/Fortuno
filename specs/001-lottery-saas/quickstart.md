@@ -85,7 +85,7 @@ no ProxyPay. Anote `storeId`.
 ### 4.3 Criar Lottery em Draft
 
 ```http
-POST /api/lotteries
+POST /lotteries
 Content-Type: application/json
 
 {
@@ -110,15 +110,15 @@ Retorna `lotteryId`, `slug` e `status=1` (Draft).
 ### 4.4 Adicionar imagem, Raffle e RaffleAward (em Draft)
 
 ```http
-POST /api/lottery-images
-POST /api/raffles
-POST /api/raffle-awards
+POST /lottery-images
+POST /raffles
+POST /raffle-awards
 ```
 
 ### 4.5 Publicar
 
 ```http
-POST /api/lotteries/{lotteryId}/publish
+POST /lotteries/{lotteryId}/publish
 ```
 
 Retorna 200. Lottery vai para `Open`.
@@ -126,7 +126,7 @@ Retorna 200. Lottery vai para `Open`.
 ### 4.6 Preview de compra
 
 ```http
-POST /api/purchases/preview
+POST /purchases/preview
 {
   "lotteryId": 1,
   "quantity": 5,
@@ -140,7 +140,7 @@ Retorna `totalAmount`, `discountValue`, `availableTickets`, `referrerUserId`.
 ### 4.7 Confirmar compra (gera Invoice no ProxyPay)
 
 ```http
-POST /api/purchases/confirm
+POST /purchases/confirm
 ```
 
 Retorna `invoiceId`, `pixQrCode`, `pixCopyPaste`, `expiresAt`.
@@ -153,7 +153,7 @@ ele envia webhook → Fortuno emite os tickets.
 ### 4.9 Consultar "Meus Tickets"
 
 ```http
-GET /api/tickets/mine
+GET /tickets/mine
 ```
 
 ou via GraphQL:
@@ -171,7 +171,7 @@ query {
 ### 4.10 Sortear
 
 ```http
-POST /api/raffles/{raffleId}/winners/preview
+POST /raffles/{raffleId}/winners/preview
 {
   "winningNumbers": [7, 42, 100]
 }
@@ -180,20 +180,20 @@ POST /api/raffles/{raffleId}/winners/preview
 Revisar prévia e confirmar:
 
 ```http
-POST /api/raffles/{raffleId}/winners/confirm
+POST /raffles/{raffleId}/winners/confirm
 ```
 
 Fechar o Raffle:
 
 ```http
-POST /api/raffles/{raffleId}/close
+POST /raffles/{raffleId}/close
 ```
 
 ### 4.11 Painéis de comissão
 
 ```http
-GET /api/referrals/me               # painel do indicador
-GET /api/commissions/lottery/{id}   # painel do dono
+GET /referrals/me               # painel do indicador
+GET /commissions/lottery/{id}   # painel do dono
 ```
 
 Ambos calculam em tempo real.

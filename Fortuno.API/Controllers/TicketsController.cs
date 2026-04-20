@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Fortuno.API.Controllers;
 
 [ApiController]
-[Route("api/tickets")]
+[Route("tickets")]
 [Authorize]
 public class TicketsController : ControllerBase
 {
@@ -40,6 +40,6 @@ public class TicketsController : ControllerBase
     public async Task<IActionResult> Get(long ticketId)
     {
         var info = await _tickets.GetByIdAsync(ticketId, User.GetCurrentUserId());
-        return info is null ? NotFound() : Ok(info);
+        return Ok(info);
     }
 }
