@@ -569,6 +569,13 @@ namespace Fortuno.Infra.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("ticket_number");
 
+                    b.Property<string>("TicketValue")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("varchar(64)")
+                        .HasDefaultValue("")
+                        .HasColumnName("ticket_value");
+
                     b.Property<long>("UserId")
                         .HasColumnType("bigint")
                         .HasColumnName("user_id");
@@ -586,10 +593,143 @@ namespace Fortuno.Infra.Migrations
                         .IsUnique()
                         .HasDatabaseName("fortuna_tickets_lottery_number_uq");
 
+                    b.HasIndex("LotteryId", "TicketValue")
+                        .HasDatabaseName("fortuna_tickets_lottery_value_ix");
+
                     b.HasIndex("UserId", "CreatedAt")
                         .HasDatabaseName("fortuna_tickets_user_created_ix");
 
                     b.ToTable("fortuna_tickets", (string)null);
+                });
+
+            modelBuilder.Entity("Fortuno.Domain.Models.TicketOrder", b =>
+                {
+                    b.Property<long>("TicketOrderId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("ticket_order_id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("TicketOrderId"));
+
+                    b.Property<string>("BrCode")
+                        .HasColumnType("varchar(2000)")
+                        .HasColumnName("br_code");
+
+                    b.Property<string>("BrCodeBase64")
+                        .HasColumnType("text")
+                        .HasColumnName("br_code_base64");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<DateTime>("ExpiredAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("expired_at");
+
+                    b.Property<long>("InvoiceId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("invoice_id");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasColumnType("varchar(40)")
+                        .HasColumnName("invoice_number");
+
+                    b.Property<long>("LotteryId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("lottery_id");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("integer")
+                        .HasColumnName("mode");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<string>("ReferralCode")
+                        .HasColumnType("varchar(8)")
+                        .HasColumnName("referral_code");
+
+                    b.Property<float>("ReferralPercentAtPurchase")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("real")
+                        .HasDefaultValue(0f)
+                        .HasColumnName("referral_percent_at_purchase");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("status");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("numeric(14,2)")
+                        .HasColumnName("total_amount");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("TicketOrderId")
+                        .HasName("fortuna_ticket_orders_pkey");
+
+                    b.HasIndex("InvoiceId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ticket_orders_invoice_id");
+
+                    b.HasIndex("LotteryId")
+                        .HasDatabaseName("ix_ticket_orders_lottery_id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_ticket_orders_user_id");
+
+                    b.ToTable("fortuna_ticket_orders", (string)null);
+                });
+
+            modelBuilder.Entity("Fortuno.Domain.Models.TicketOrderNumber", b =>
+                {
+                    b.Property<long>("TicketOrderNumberId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("ticket_order_number_id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("TicketOrderNumberId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<long>("TicketNumber")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ticket_number");
+
+                    b.Property<long>("TicketOrderId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ticket_order_id");
+
+                    b.HasKey("TicketOrderNumberId")
+                        .HasName("fortuna_ticket_order_numbers_pkey");
+
+                    b.HasIndex("TicketOrderId")
+                        .HasDatabaseName("ix_ticket_order_numbers_order_id");
+
+                    b.HasIndex("TicketOrderId", "TicketNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ticket_order_numbers_order_number_uq");
+
+                    b.ToTable("fortuna_ticket_order_numbers", (string)null);
                 });
 
             modelBuilder.Entity("Fortuno.Domain.Models.UserReferrer", b =>
@@ -628,44 +768,6 @@ namespace Fortuno.Infra.Migrations
                         .HasDatabaseName("fortuna_user_referrers_user_uq");
 
                     b.ToTable("fortuna_user_referrers", (string)null);
-                });
-
-            modelBuilder.Entity("Fortuno.Domain.Models.WebhookEvent", b =>
-                {
-                    b.Property<long>("WebhookEventId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("webhook_event_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("WebhookEventId"));
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasColumnType("varchar(40)")
-                        .HasColumnName("event_type");
-
-                    b.Property<long>("InvoiceId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("invoice_id");
-
-                    b.Property<string>("PayloadHash")
-                        .HasColumnType("varchar(64)")
-                        .HasColumnName("payload_hash");
-
-                    b.Property<DateTime>("ReceivedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
-                        .HasColumnName("received_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.HasKey("WebhookEventId")
-                        .HasName("fortuna_webhook_events_pkey");
-
-                    b.HasIndex("InvoiceId", "EventType")
-                        .IsUnique()
-                        .HasDatabaseName("fortuna_webhook_events_invoice_type_uq");
-
-                    b.ToTable("fortuna_webhook_events", (string)null);
                 });
 
             modelBuilder.Entity("Fortuno.Domain.Models.LotteryCombo", b =>
@@ -760,6 +862,28 @@ namespace Fortuno.Infra.Migrations
                     b.Navigation("Lottery");
                 });
 
+            modelBuilder.Entity("Fortuno.Domain.Models.TicketOrder", b =>
+                {
+                    b.HasOne("Fortuno.Domain.Models.Lottery", "Lottery")
+                        .WithMany()
+                        .HasForeignKey("LotteryId")
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_order_lottery");
+
+                    b.Navigation("Lottery");
+                });
+
+            modelBuilder.Entity("Fortuno.Domain.Models.TicketOrderNumber", b =>
+                {
+                    b.HasOne("Fortuno.Domain.Models.TicketOrder", "Order")
+                        .WithMany("Numbers")
+                        .HasForeignKey("TicketOrderId")
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_order_number_order");
+
+                    b.Navigation("Order");
+                });
+
             modelBuilder.Entity("Fortuno.Domain.Models.Lottery", b =>
                 {
                     b.Navigation("Combos");
@@ -776,6 +900,11 @@ namespace Fortuno.Infra.Migrations
                     b.Navigation("Awards");
 
                     b.Navigation("Winners");
+                });
+
+            modelBuilder.Entity("Fortuno.Domain.Models.TicketOrder", b =>
+                {
+                    b.Navigation("Numbers");
                 });
 #pragma warning restore 612, 618
         }

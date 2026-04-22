@@ -56,7 +56,7 @@ idempotency, enums, erros, DI.
 
 **⚠️ CRITICAL**: Nenhuma US pode começar antes deste bloco concluir.
 
-- [X] T017 [P] Criar enums em `Fortuno.Domain/Enums/` (`LotteryStatus`, `RaffleStatus`, `TicketRefundState`, `NumberType`, `PurchaseAssignmentMode`) conforme `data-model.md`.
+- [X] T017 [P] Criar enums em `Fortuno.Domain/Enums/` (`LotteryStatus`, `RaffleStatus`, `TicketRefundState`, `NumberType`, `TicketOrderMode`) conforme `data-model.md`.
 - [X] T018 [P] Criar classes de settings em `Fortuno.DTO/Settings/` (`FortunoSettings`, `NAuthSettings`, `ProxyPaySettings`, `ZToolsSettings`).
 - [X] T019 [P] Criar DTO base de resposta padronizada `Fortuno.DTO/Common/ApiResponse.cs` com chaves `sucesso`, `mensagem`, `erros` (constituição).
 - [X] T020 Criar `Fortuno.Infra/Context/FortunoContext.cs` com `DbSet` vazios e `OnModelCreating` vazio (esqueleto); string de conexão injetada via `IOptions<FortunoSettings>`.

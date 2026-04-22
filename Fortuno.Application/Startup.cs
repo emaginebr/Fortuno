@@ -52,7 +52,8 @@ public static class Startup
         services.AddScoped<IInvoiceReferrerRepository<InvoiceReferrer>, InvoiceReferrerRepository>();
         services.AddScoped<IRefundLogRepository<RefundLog>, RefundLogRepository>();
         services.AddScoped<INumberReservationRepository<NumberReservation>, NumberReservationRepository>();
-        services.AddScoped<IWebhookEventRepository<WebhookEvent>, WebhookEventRepository>();
+        services.AddScoped<ITicketOrderRepository<TicketOrder>, TicketOrderRepository>();
+        services.AddScoped<ITicketOrderNumberRepository<TicketOrderNumber>, TicketOrderNumberRepository>();
 
         // NAuth (inclui IUserClient, IRoleClient, TenantDelegatingHandler)
         services.Configure<NAuth.DTO.Settings.NAuthSetting>(config.GetSection("NAuth"));
@@ -83,7 +84,6 @@ public static class Startup
 
         // Domain Services — US2 (Purchase + Tickets + Referrer)
         services.AddScoped<Fortuno.Domain.Interfaces.IUserReferrerService, Fortuno.Domain.Services.UserReferrerService>();
-        services.AddScoped<Fortuno.Domain.Interfaces.IPurchaseService, Fortuno.Domain.Services.PurchaseService>();
         services.AddScoped<Fortuno.Domain.Interfaces.ITicketService, Fortuno.Domain.Services.TicketService>();
 
         // Domain Services — US4 (Management + Refund)

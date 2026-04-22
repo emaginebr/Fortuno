@@ -53,6 +53,11 @@ public class LotteriesController : ControllerBase
     public async Task<IActionResult> ListByStore(long storeId)
         => Ok(await _lotteries.ListByStoreAsync(storeId));
 
+    [HttpGet("open")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ListOpen()
+        => Ok(await _lotteries.ListOpenAsync());
+
     [HttpPut("{lotteryId:long}")]
     public async Task<IActionResult> Update(long lotteryId, [FromBody] LotteryUpdateInfo dto)
     {

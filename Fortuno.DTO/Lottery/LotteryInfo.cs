@@ -1,5 +1,8 @@
 using System.Text.Json.Serialization;
 using Fortuno.DTO.Enums;
+using Fortuno.DTO.LotteryCombo;
+using Fortuno.DTO.LotteryImage;
+using Fortuno.DTO.Raffle;
 
 namespace Fortuno.DTO.Lottery;
 
@@ -64,4 +67,13 @@ public class LotteryInfo
 
     [JsonPropertyName("updatedAt")]
     public DateTime UpdatedAt { get; set; }
+
+    [JsonPropertyName("images")]
+    public List<LotteryImageInfo> Images { get; set; } = new();
+
+    [JsonPropertyName("combos")]
+    public List<LotteryComboInfo> Combos { get; set; } = new();
+
+    [JsonPropertyName("raffles")]
+    public List<RaffleInfo> Raffles { get; set; } = new();
 }

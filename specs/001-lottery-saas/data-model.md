@@ -18,7 +18,7 @@ public enum TicketRefundState { None = 1, PendingRefund = 2, Refunded = 3 }
 public enum NumberType      { Int64 = 1, Composed3 = 3, Composed4 = 4,
                               Composed5 = 5, Composed6 = 6, Composed7 = 7,
                               Composed8 = 8 }
-public enum PurchaseAssignmentMode { Random = 1, UserPicks = 2 }
+public enum TicketOrderMode { Random = 1, UserPicks = 2 }
 ```
 
 ---

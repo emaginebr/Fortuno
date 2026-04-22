@@ -107,7 +107,7 @@ public class LotteryService : ILotteryService
 
     public async Task<LotteryInfo?> GetByIdAsync(long lotteryId)
     {
-        var entity = await _lotteryRepo.GetByIdAsync(lotteryId);
+        var entity = await _lotteryRepo.GetByIdWithDetailsAsync(lotteryId);
         return entity is null ? null : MapToDto(entity);
     }
 
@@ -120,6 +120,12 @@ public class LotteryService : ILotteryService
     public async Task<List<LotteryInfo>> ListByStoreAsync(long storeId)
     {
         var list = await _lotteryRepo.ListByStoreAsync(storeId);
+        return list.Select(MapToDto).ToList();
+    }
+
+    public async Task<List<LotteryInfo>> ListOpenAsync()
+    {
+        var list = await _lotteryRepo.ListOpenAsync();
         return list.Select(MapToDto).ToList();
     }
 
@@ -226,6 +232,55 @@ public class LotteryService : ILotteryService
         ReferralPercent = e.ReferralPercent,
         Status = (LotteryStatusDto)e.Status,
         CreatedAt = e.CreatedAt,
-        UpdatedAt = e.UpdatedAt
+        UpdatedAt = e.UpdatedAt,
+        Images = e.Images?.Select(MapImage).ToList() ?? new(),
+        Combos = e.Combos?.Select(MapCombo).ToList() ?? new(),
+        Raffles = e.Raffles?.Select(MapRaffle).ToList() ?? new()
+    };
+
+    private static Fortuno.DTO.LotteryImage.LotteryImageInfo MapImage(LotteryImage i) => new()
+    {
+        LotteryImageId = i.LotteryImageId,
+        LotteryId = i.LotteryId,
+        ImageUrl = i.ImageUrl,
+        Description = i.Description,
+        DisplayOrder = i.DisplayOrder,
+        CreatedAt = i.CreatedAt
+    };
+
+    private static Fortuno.DTO.LotteryCombo.LotteryComboInfo MapCombo(LotteryCombo c) => new()
+    {
+        LotteryComboId = c.LotteryComboId,
+        LotteryId = c.LotteryId,
+        Name = c.Name,
+        DiscountValue = c.DiscountValue,
+        DiscountLabel = c.DiscountLabel,
+        QuantityStart = c.QuantityStart,
+        QuantityEnd = c.QuantityEnd,
+        CreatedAt = c.CreatedAt,
+        UpdatedAt = c.UpdatedAt
+    };
+
+    private static Fortuno.DTO.Raffle.RaffleInfo MapRaffle(Raffle r) => new()
+    {
+        RaffleId = r.RaffleId,
+        LotteryId = r.LotteryId,
+        Name = r.Name,
+        DescriptionMd = r.DescriptionMd,
+        RaffleDatetime = r.RaffleDatetime,
+        VideoUrl = r.VideoUrl,
+        IncludePreviousWinners = r.IncludePreviousWinners,
+        Status = (RaffleStatusDto)r.Status,
+        CreatedAt = r.CreatedAt,
+        UpdatedAt = r.UpdatedAt,
+        Awards = r.Awards?.Select(MapAward).ToList() ?? new()
+    };
+
+    private static Fortuno.DTO.RaffleAward.RaffleAwardInfo MapAward(RaffleAward a) => new()
+    {
+        RaffleAwardId = a.RaffleAwardId,
+        RaffleId = a.RaffleId,
+        Position = a.Position,
+        Description = a.Description
     };
 }

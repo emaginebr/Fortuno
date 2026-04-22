@@ -7,23 +7,26 @@ public sealed class ApiSessionFixture : IAsyncLifetime
     public FlurlClient Client { get; private set; } = default!;
     public long StoreId { get; private set; }
     public string NAuthTenant { get; private set; } = string.Empty;
+    public string Token { get; private set; } = string.Empty;
+    public string ProxyPayUrl { get; private set; } = string.Empty;
 
     public async Task InitializeAsync()
     {
         var settings = TestSettings.FromEnvironment();
         NAuthTenant = settings.NAuthTenant;
+        ProxyPayUrl = settings.ProxyPayUrl;
 
-        var token = await LoginAsync(settings);
+        Token = await LoginAsync(settings);
 
         Client = new FlurlClient(settings.ApiBaseUrl)
-            .WithHeader("Authorization", $"Basic {token}")
+            .WithHeader("Authorization", $"Basic {Token}")
             .WithHeader("X-Tenant-Id", settings.NAuthTenant);
 
         // Descobre a Store do usuário autenticado via GraphQL do ProxyPay
         // (R-001 v2: elimina dependência de FORTUNO_TEST_STORE_ID).
         StoreId = await ProxyPayStoreResolver.ResolveAsync(
             settings.ProxyPayUrl,
-            token,
+            Token,
             settings.NAuthTenant,
             settings.NAuthUser);
 

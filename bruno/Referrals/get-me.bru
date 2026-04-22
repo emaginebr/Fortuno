@@ -7,9 +7,13 @@ meta {
 get {
   url: {{baseUrl}}/referrals/me
   body: none
-  auth: none
+  auth: bearer
 }
 
 headers {
   Authorization: Basic {{accessToken}}
+}
+
+auth:bearer {
+  token: {{token}}
 }

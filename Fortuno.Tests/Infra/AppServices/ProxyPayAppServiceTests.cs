@@ -1,11 +1,10 @@
-using Fortuno.DTO.ProxyPay;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 using FluentAssertions;
+using Fortuno.DTO.ProxyPay;
 using Fortuno.DTO.Settings;
 using Fortuno.Infra.AppServices;
-using Fortuno.Infra.Interfaces.AppServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -49,11 +48,11 @@ public class ProxyPayAppServiceTests
         };
 
     [Fact]
-    public async Task GetStoreAsync_ShouldReturnStore_When200()
+    public async Task GetStoreAsync_ShouldReturnStoreWithClientId_When200()
     {
         var (sut, _) = CreateSut(Json(new
         {
-            data = new { myStore = new[] { new { storeId = 10L, userId = 42L, name = "Loja" } } }
+            data = new { myStore = new[] { new { storeId = 10L, userId = 42L, clientId = "abc123", name = "Loja" } } }
         }));
 
         var result = await sut.GetStoreAsync(10);
@@ -61,6 +60,7 @@ public class ProxyPayAppServiceTests
         result.Should().NotBeNull();
         result!.StoreId.Should().Be(10);
         result.OwnerUserId.Should().Be(42);
+        result.ClientId.Should().Be("abc123");
     }
 
     [Fact]
@@ -84,66 +84,110 @@ public class ProxyPayAppServiceTests
     }
 
     [Fact]
-    public async Task CreateInvoiceAsync_ShouldMapResponse()
+    public async Task CreateQRCodeAsync_ShouldMapResponse()
     {
         var (sut, _) = CreateSut(Json(new
         {
-            invoiceId = 123L,
-            storeId = 10L,
-            amount = 50m,
-            status = "pending",
-            pixCopyPaste = "pix-code",
-            pixQrCode = "qr"
-        }));
+            invoiceId = 1L,
+            invoiceNumber = "INV-0001-000001",
+            brCode = "00020101...",
+            brCodeBase64 = "data:image/png;base64,iVBOR...",
+            expiredAt = "2026-04-19T14:20:00.348+00:00"
+        }, HttpStatusCode.Created));
 
-        var result = await sut.CreateInvoiceAsync(new ProxyPayCreateInvoiceRequest
+        var result = await sut.CreateQRCodeAsync(new ProxyPayQRCodeRequest
         {
-            StoreId = 10,
-            Amount = 50m,
-            Description = "test"
+            ClientId = "abc123",
+            Customer = new ProxyPayCustomer
+            {
+                Name = "John", Email = "j@e.com", DocumentId = "89639766100", Cellphone = "11999999999"
+            },
+            Items = new List<ProxyPayItem>
+            {
+                new() { Id = "LOTTERY-1", Description = "Test", Quantity = 1, UnitPrice = 10m, Discount = 0 }
+            }
         });
 
-        result.InvoiceId.Should().Be(123);
-        result.PixCopyPaste.Should().Be("pix-code");
-        result.Status.Should().Be("pending");
+        result.Should().NotBeNull();
+        result.InvoiceId.Should().Be(1);
+        result.InvoiceNumber.Should().Be("INV-0001-000001");
+        result.BrCode.Should().StartWith("00020101");
+        result.BrCodeBase64.Should().StartWith("data:image/png;base64,");
     }
 
     [Fact]
-    public async Task CreateInvoiceAsync_ShouldThrow_WhenStatusNotSuccess()
+    public async Task CreateQRCodeAsync_ShouldThrow_When4xx()
     {
-        var (sut, _) = CreateSut(new HttpResponseMessage(HttpStatusCode.BadRequest));
+        var (sut, _) = CreateSut(new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            Content = new StringContent("{\"error\":\"invalid\"}", Encoding.UTF8, "application/json")
+        });
 
-        Func<Task> act = () => sut.CreateInvoiceAsync(new ProxyPayCreateInvoiceRequest { StoreId = 10 });
+        Func<Task> act = () => sut.CreateQRCodeAsync(new ProxyPayQRCodeRequest { ClientId = "x" });
 
-        await act.Should().ThrowAsync<HttpRequestException>();
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*status 400*");
     }
 
     [Fact]
-    public async Task GetInvoiceAsync_ShouldReturnNull_When404()
+    public async Task CreateQRCodeAsync_ShouldThrow_When5xx()
+    {
+        var (sut, _) = CreateSut(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+
+        Func<Task> act = () => sut.CreateQRCodeAsync(new ProxyPayQRCodeRequest { ClientId = "x" });
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public async Task GetQRCodeStatusAsync_ShouldReturnNumericStatus(int statusInt)
+    {
+        var (sut, _) = CreateSut(Json(new { invoiceId = 1L, status = statusInt }));
+
+        var result = await sut.GetQRCodeStatusAsync(1);
+
+        result.Should().NotBeNull();
+        result!.Status.Should().Be(statusInt);
+    }
+
+    [Fact]
+    public async Task GetQRCodeStatusAsync_ShouldReturnPaidWithTimestamp()
+    {
+        var (sut, _) = CreateSut(Json(new
+        {
+            invoiceId = 1L,
+            status = 1,
+            paidAt = "2026-04-19T14:25:00+00:00"
+        }));
+
+        var result = await sut.GetQRCodeStatusAsync(1);
+
+        result.Should().NotBeNull();
+        result!.Status.Should().Be(1);
+        result.PaidAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task GetQRCodeStatusAsync_ShouldReturnNull_When404()
     {
         var (sut, _) = CreateSut(new HttpResponseMessage(HttpStatusCode.NotFound));
 
-        var result = await sut.GetInvoiceAsync(123);
+        var result = await sut.GetQRCodeStatusAsync(1);
 
         result.Should().BeNull();
     }
 
     [Fact]
-    public async Task GetInvoiceAsync_ShouldMapFields_When200()
+    public async Task GetQRCodeStatusAsync_ShouldReturnNull_When5xx()
     {
-        var (sut, _) = CreateSut(Json(new
-        {
-            invoiceId = 9L,
-            storeId = 10L,
-            amount = 100m,
-            paidAmount = 100m,
-            status = "paid"
-        }));
+        var (sut, _) = CreateSut(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
 
-        var result = await sut.GetInvoiceAsync(9);
+        var result = await sut.GetQRCodeStatusAsync(1);
 
-        result.Should().NotBeNull();
-        result!.PaidAmount.Should().Be(100m);
-        result.Status.Should().Be("paid");
+        result.Should().BeNull();
     }
 }
