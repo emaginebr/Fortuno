@@ -92,13 +92,8 @@ public class LotteryLifecycleTests
     {
         var created = await CreateDraftAsync();
 
-        var cancelResponse = await _fixture.Client
-            .Request("lotteries", created.LotteryId, "cancel")
-            .AllowHttpStatus("2xx,4xx")
-            .PostJsonAsync(new LotteryCancelRequest
-            {
-                Reason = "Cancelamento QA: motivo com ao menos vinte caracteres para passar na validacao."
-            });
+        var cancelResponse = await CancelAsync(created.LotteryId,
+            "Cancelamento QA: motivo com ao menos vinte caracteres para passar na validacao.");
 
         cancelResponse.StatusCode.Should().Be(200);
 
@@ -113,13 +108,8 @@ public class LotteryLifecycleTests
         var created = await CreateDraftAsync();
 
         // Cancela a Lottery Draft
-        var cancelResponse = await _fixture.Client
-            .Request("lotteries", created.LotteryId, "cancel")
-            .AllowHttpStatus("2xx,4xx")
-            .PostJsonAsync(new LotteryCancelRequest
-            {
-                Reason = "Cancelamento QA para testar transicao invalida posterior."
-            });
+        var cancelResponse = await CancelAsync(created.LotteryId,
+            "Cancelamento QA para testar transicao invalida posterior.");
         cancelResponse.StatusCode.Should().Be(200);
 
         // Tenta publicar depois de cancelada — deve falhar
@@ -180,6 +170,23 @@ public class LotteryLifecycleTests
         return await _fixture.Client
             .Request("lotteries", lotteryId)
             .GetJsonAsync<LotteryInfo>();
+    }
+
+    private async Task<IFlurlResponse> CancelAsync(long lotteryId, string reason)
+    {
+        try
+        {
+            return await _fixture.Client
+                .Request("lotteries", lotteryId, "cancel")
+                .AllowHttpStatus("2xx,4xx")
+                .PostJsonAsync(new LotteryCancelRequest { Reason = reason });
+        }
+        catch (FlurlHttpException ex)
+        {
+            var body = ex.Call?.Response is null ? "<sem body>" : await ex.Call.Response.GetStringAsync();
+            throw new InvalidOperationException(
+                $"POST /lotteries/{lotteryId}/cancel falhou com {ex.StatusCode}. Body: {body}", ex);
+        }
     }
 
     private LotteryInsertInfo BuildValidInsertInfo(string name) => new()

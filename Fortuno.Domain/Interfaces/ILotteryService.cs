@@ -11,7 +11,9 @@ public interface ILotteryService
     Task<List<LotteryInfo>> ListByStoreAsync(long storeId);
     Task<List<LotteryInfo>> ListOpenAsync();
     Task<LotteryInfo> PublishAsync(long currentUserId, long lotteryId);
+    Task<LotteryInfo> RevertToDraftAsync(long currentUserId, long lotteryId);
     Task<LotteryInfo> CloseAsync(long currentUserId, long lotteryId);
     Task<LotteryInfo> CancelAsync(long currentUserId, long lotteryId, LotteryCancelRequest request);
+    Task DeleteAsync(long currentUserId, long lotteryId);
     Task<long> CalculatePossibilitiesAsync(long lotteryId);
 }

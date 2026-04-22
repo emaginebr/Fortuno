@@ -8,6 +8,9 @@ public class LotteryInsertInfo
     [JsonPropertyName("storeId")]
     public long StoreId { get; set; }
 
+    [JsonPropertyName("editionNumber")]
+    public int EditionNumber { get; set; } = 1;
+
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
 

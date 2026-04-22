@@ -70,8 +70,12 @@ builder.Services.AddCors(options =>
     {
         var corsSection = builder.Configuration.GetSection("Cors");
         var allowAny = corsSection.GetValue<bool>("AllowAnyOrigin");
+        var allowedOrigins = corsSection.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
         if (allowAny)
             policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        else if (allowedOrigins.Length > 0)
+            policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
         else
             policy.WithOrigins().AllowAnyHeader().AllowAnyMethod();
     });

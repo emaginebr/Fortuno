@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Fortuno.Infra.Migrations
 {
     [DbContext(typeof(FortunoContext))]
-    [Migration("20260420205838_AddTicketValue")]
-    partial class AddTicketValue
+    [Migration("20260422174852_AddLotteryEditionNumber")]
+    partial class AddLotteryEditionNumber
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -100,6 +100,12 @@ namespace Fortuno.Infra.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("description_md");
+
+                    b.Property<int>("EditionNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("edition_number");
 
                     b.Property<string>("Name")
                         .IsRequired()

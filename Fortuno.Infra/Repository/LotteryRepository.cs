@@ -29,6 +29,11 @@ public class LotteryRepository : Repository<Lottery>, ILotteryRepository<Lottery
     public async Task<List<Lottery>> ListOpenAsync()
         => await _context.Lotteries
             .AsNoTracking()
+            .Include(x => x.Images)
+            .Include(x => x.Combos)
+            .Include(x => x.Raffles)
+                .ThenInclude(r => r.Awards)
+            .AsSplitQuery()
             .Where(x => x.Status == LotteryStatus.Open)
             .OrderByDescending(x => x.UpdatedAt)
             .ToListAsync();

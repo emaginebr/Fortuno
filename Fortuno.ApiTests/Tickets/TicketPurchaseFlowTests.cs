@@ -106,7 +106,7 @@ public class TicketPurchaseFlowTests
             await new FlurlRequest(simulateUrl)
                 .WithHeader("Authorization", $"Basic {_fixture.Token}")
                 .WithHeader("X-Tenant-Id", _fixture.NAuthTenant)
-                .GetAsync();
+                .PostAsync();
         }
         catch (FlurlHttpException ex)
         {

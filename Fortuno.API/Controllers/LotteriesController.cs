@@ -84,6 +84,19 @@ public class LotteriesController : ControllerBase
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
 
+    [HttpPost("{lotteryId:long}/revert-to-draft")]
+    public async Task<IActionResult> RevertToDraft(long lotteryId)
+    {
+        try
+        {
+            var info = await _lotteries.RevertToDraftAsync(User.GetCurrentUserId(), lotteryId);
+            return Ok(info);
+        }
+        catch (KeyNotFoundException) { return Ok(null); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
+        catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
+    }
+
     [HttpPost("{lotteryId:long}/close")]
     public async Task<IActionResult> Close(long lotteryId)
     {
@@ -91,6 +104,19 @@ public class LotteriesController : ControllerBase
         {
             var info = await _lotteries.CloseAsync(User.GetCurrentUserId(), lotteryId);
             return Ok(info);
+        }
+        catch (KeyNotFoundException) { return Ok(null); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
+        catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
+    }
+
+    [HttpDelete("{lotteryId:long}")]
+    public async Task<IActionResult> Delete(long lotteryId)
+    {
+        try
+        {
+            await _lotteries.DeleteAsync(User.GetCurrentUserId(), lotteryId);
+            return NoContent();
         }
         catch (KeyNotFoundException) { return Ok(null); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }

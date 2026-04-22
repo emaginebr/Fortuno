@@ -1,0 +1,42 @@
+meta {
+  name: Lottery by Id (public)
+  type: graphql
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/graphql
+  body: graphql
+  auth: none
+}
+
+body:graphql {
+  query LotteryById($id: Long!) {
+    lotteryById(id: $id) {
+      lotteryId
+      storeId
+      name
+      slug
+      descriptionMd
+      ticketPrice
+      totalPrizeValue
+      ticketMin
+      ticketMax
+      status
+      createdAt
+      updatedAt
+      raffles {
+        raffleId
+        name
+        raffleDatetime
+        status
+      }
+    }
+  }
+}
+
+body:graphql:vars {
+  {
+    "id": 1
+  }
+}

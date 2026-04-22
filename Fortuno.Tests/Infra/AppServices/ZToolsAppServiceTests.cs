@@ -38,12 +38,14 @@ public class ZToolsAppServiceTests
         var bytes = Encoding.UTF8.GetBytes("fake-image-bytes");
         var base64 = Convert.ToBase64String(bytes);
         _fileClient.Setup(c => c.UploadFileAsync("fortuno-bucket", It.IsAny<IFormFile>()))
-            .ReturnsAsync("https://s3.example/image.png");
+            .ReturnsAsync("image.png");
+        _fileClient.Setup(c => c.GetFileUrlAsync("fortuno-bucket", "image.png"))
+            .ReturnsAsync("https://s3.example/fortuno-bucket/image.png");
 
         var sut = CreateSut();
         var url = await sut.UploadImageAsync(base64, "img.png");
 
-        url.Should().Be("https://s3.example/image.png");
+        url.Should().Be("https://s3.example/fortuno-bucket/image.png");
     }
 
     [Fact]
@@ -52,12 +54,14 @@ public class ZToolsAppServiceTests
         var bytes = Encoding.UTF8.GetBytes("content");
         var dataUri = "data:image/png;base64," + Convert.ToBase64String(bytes);
         _fileClient.Setup(c => c.UploadFileAsync("fortuno-bucket", It.IsAny<IFormFile>()))
-            .ReturnsAsync("https://s3.example/x.png");
+            .ReturnsAsync("x.png");
+        _fileClient.Setup(c => c.GetFileUrlAsync("fortuno-bucket", "x.png"))
+            .ReturnsAsync("https://s3.example/fortuno-bucket/x.png");
 
         var sut = CreateSut();
         var url = await sut.UploadImageAsync(dataUri, "x.png");
 
-        url.Should().Be("https://s3.example/x.png");
+        url.Should().Be("https://s3.example/fortuno-bucket/x.png");
     }
 
     [Fact]
@@ -74,12 +78,14 @@ public class ZToolsAppServiceTests
     {
         var content = new byte[] { 1, 2, 3 };
         _fileClient.Setup(c => c.UploadFileAsync("fortuno-bucket", It.IsAny<IFormFile>()))
-            .ReturnsAsync("https://s3/xyz");
+            .ReturnsAsync("file.pdf");
+        _fileClient.Setup(c => c.GetFileUrlAsync("fortuno-bucket", "file.pdf"))
+            .ReturnsAsync("https://s3/fortuno-bucket/file.pdf");
 
         var sut = CreateSut();
         var url = await sut.UploadFileAsync(content, "application/pdf", "file.pdf");
 
-        url.Should().Be("https://s3/xyz");
+        url.Should().Be("https://s3/fortuno-bucket/file.pdf");
     }
 
     [Fact]

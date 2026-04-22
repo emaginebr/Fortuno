@@ -16,26 +16,17 @@ namespace Fortuno.GraphQL.Queries;
 
 public class Query
 {
+    [UseOffsetPaging(IncludeTotalCount = true, MaxPageSize = 50, DefaultPageSize = 10)]
     [UseProjection]
-    [UseFiltering]
     [UseSorting]
-    public IQueryable<Lottery> Lotteries([Service] FortunoContext context)
-        => context.Lotteries.AsNoTracking();
+    public IQueryable<Lottery> OpenLotteries([Service] FortunoContext context)
+        => context.Lotteries.AsNoTracking().Where(x => x.Status == LotteryStatus.Open);
 
     public async Task<Lottery?> LotteryBySlug([Service] FortunoContext context, string slug)
         => await context.Lotteries.AsNoTracking().FirstOrDefaultAsync(x => x.Slug == slug);
 
     public async Task<Lottery?> LotteryById([Service] FortunoContext context, long id)
         => await context.Lotteries.AsNoTracking().FirstOrDefaultAsync(x => x.LotteryId == id);
-
-    [UseProjection]
-    [UseFiltering]
-    [UseSorting]
-    public IQueryable<Raffle> Raffles([Service] FortunoContext context, long lotteryId)
-        => context.Raffles.AsNoTracking().Where(x => x.LotteryId == lotteryId);
-
-    public async Task<Raffle?> RaffleById([Service] FortunoContext context, long id)
-        => await context.Raffles.AsNoTracking().FirstOrDefaultAsync(x => x.RaffleId == id);
 
     [Authorize]
     [UseProjection]

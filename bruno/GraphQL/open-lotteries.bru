@@ -1,0 +1,43 @@
+meta {
+  name: Open Lotteries (public)
+  type: graphql
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/graphql
+  body: graphql
+  auth: none
+}
+
+body:graphql {
+  query OpenLotteries($skip: Int, $take: Int) {
+    openLotteries(skip: $skip, take: $take, order: { updatedAt: DESC }) {
+      totalCount
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+      }
+      items {
+        lotteryId
+        storeId
+        name
+        slug
+        ticketPrice
+        totalPrizeValue
+        ticketMin
+        ticketMax
+        status
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}
+
+body:graphql:vars {
+  {
+    "skip": 0,
+    "take": 10
+  }
+}

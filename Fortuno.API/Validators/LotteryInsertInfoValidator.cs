@@ -9,6 +9,7 @@ public class LotteryInsertInfoValidator : AbstractValidator<LotteryInsertInfo>
     public LotteryInsertInfoValidator()
     {
         RuleFor(x => x.StoreId).GreaterThan(0);
+        RuleFor(x => x.EditionNumber).GreaterThan(0);
         RuleFor(x => x.Name).NotEmpty().Length(3, 160);
         RuleFor(x => x.DescriptionMd).NotEmpty();
         RuleFor(x => x.RulesMd).NotEmpty();

@@ -46,6 +46,7 @@ public class LotteryService : ILotteryService
         var entity = new Lottery
         {
             StoreId = dto.StoreId,
+            EditionNumber = dto.EditionNumber,
             Name = dto.Name,
             Slug = slug,
             DescriptionMd = dto.DescriptionMd,
@@ -85,6 +86,7 @@ public class LotteryService : ILotteryService
             entity.Slug = newSlug;
         }
 
+        entity.EditionNumber = dto.EditionNumber;
         entity.Name = dto.Name;
         entity.DescriptionMd = dto.DescriptionMd;
         entity.RulesMd = dto.RulesMd;
@@ -160,6 +162,27 @@ public class LotteryService : ILotteryService
         return MapToDto(saved);
     }
 
+    public async Task<LotteryInfo> RevertToDraftAsync(long currentUserId, long lotteryId)
+    {
+        var entity = await _lotteryRepo.GetByIdAsync(lotteryId)
+            ?? throw new KeyNotFoundException($"Lottery {lotteryId} não encontrada.");
+
+        await _ownership.EnsureOwnershipAsync(entity.StoreId, currentUserId);
+
+        if (entity.Status != LotteryStatus.Open)
+            throw new InvalidOperationException("Somente Lottery em Open pode voltar para Draft.");
+
+        var soldCount = await _ticketRepo.CountSoldAsync(lotteryId);
+        if (soldCount > 0)
+            throw new InvalidOperationException(
+                $"Não é possível voltar para Draft: já existem {soldCount} ticket(s) emitido(s).");
+
+        entity.Status = LotteryStatus.Draft;
+        entity.UpdatedAt = DateTime.UtcNow;
+        var saved = await _lotteryRepo.UpdateAsync(entity);
+        return MapToDto(saved);
+    }
+
     public async Task<LotteryInfo> CloseAsync(long currentUserId, long lotteryId)
     {
         var entity = await _lotteryRepo.GetByIdAsync(lotteryId)
@@ -204,6 +227,20 @@ public class LotteryService : ILotteryService
         return MapToDto(saved);
     }
 
+    public async Task DeleteAsync(long currentUserId, long lotteryId)
+    {
+        var entity = await _lotteryRepo.GetByIdAsync(lotteryId)
+            ?? throw new KeyNotFoundException($"Lottery {lotteryId} não encontrada.");
+
+        await _ownership.EnsureOwnershipAsync(entity.StoreId, currentUserId);
+
+        if (entity.Status != LotteryStatus.Draft && entity.Status != LotteryStatus.Cancelled)
+            throw new InvalidOperationException(
+                "Exclusão permitida apenas em Lotteries Draft ou Cancelled.");
+
+        await _lotteryRepo.DeleteAsync(lotteryId);
+    }
+
     public async Task<long> CalculatePossibilitiesAsync(long lotteryId)
     {
         var entity = await _lotteryRepo.GetByIdAsync(lotteryId)
@@ -215,6 +252,7 @@ public class LotteryService : ILotteryService
     {
         LotteryId = e.LotteryId,
         StoreId = e.StoreId,
+        EditionNumber = e.EditionNumber,
         Name = e.Name,
         Slug = e.Slug,
         DescriptionMd = e.DescriptionMd,

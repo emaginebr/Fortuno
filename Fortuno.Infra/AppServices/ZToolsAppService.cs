@@ -37,7 +37,8 @@ public class ZToolsAppService : IZToolsAppService
             Headers = new HeaderDictionary(),
             ContentType = contentType
         };
-        return await _fileClient.UploadFileAsync(_settings.S3BucketName, formFile);
+        var fileName = await _fileClient.UploadFileAsync(_settings.S3BucketName, formFile);
+        return await _fileClient.GetFileUrlAsync(_settings.S3BucketName, fileName);
     }
 
     public Task<byte[]> GeneratePdfFromMarkdownAsync(string markdown, string title)

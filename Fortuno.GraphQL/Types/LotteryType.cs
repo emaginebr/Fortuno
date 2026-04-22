@@ -10,6 +10,7 @@ public class LotteryType : ObjectType<Lottery>
         descriptor.Name("Lottery");
         descriptor.Field(x => x.LotteryId).Type<NonNullType<IdType>>();
         descriptor.Field(x => x.StoreId);
+        descriptor.Field(x => x.EditionNumber);
         descriptor.Field(x => x.Name);
         descriptor.Field(x => x.Slug);
         descriptor.Field(x => x.DescriptionMd);

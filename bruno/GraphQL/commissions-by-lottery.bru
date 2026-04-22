@@ -1,0 +1,39 @@
+meta {
+  name: Commissions by Lottery (auth)
+  type: graphql
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/graphql
+  body: graphql
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:graphql {
+  query CommissionsByLottery($lotteryId: Long!) {
+    commissionsByLottery(lotteryId: $lotteryId) {
+      lotteryId
+      lotteryName
+      totalPayable
+      note
+      byReferrer {
+        referrerUserId
+        referrerName
+        referralCode
+        amount
+        purchases
+      }
+    }
+  }
+}
+
+body:graphql:vars {
+  {
+    "lotteryId": 1
+  }
+}

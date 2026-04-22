@@ -48,6 +48,7 @@ public class FortunoContext : DbContext
             e.HasKey(x => x.LotteryId).HasName("fortuna_lotteries_pkey");
             e.Property(x => x.LotteryId).HasColumnName("lottery_id").UseIdentityAlwaysColumn();
             e.Property(x => x.StoreId).HasColumnName("store_id").IsRequired();
+            e.Property(x => x.EditionNumber).HasColumnName("edition_number").HasDefaultValue(1).IsRequired();
             e.Property(x => x.Name).HasColumnName("name").HasColumnType("varchar(160)").IsRequired();
             e.Property(x => x.Slug).HasColumnName("slug").HasColumnType("varchar(200)").IsRequired();
             e.HasIndex(x => x.Slug).IsUnique().HasDatabaseName("fortuna_lotteries_slug_uq");
@@ -91,7 +92,7 @@ public class FortunoContext : DbContext
              .WithMany(l => l.Images)
              .HasForeignKey(x => x.LotteryId)
              .HasConstraintName("fk_lottery_lottery_image")
-             .OnDelete(DeleteBehavior.ClientSetNull);
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 
@@ -115,7 +116,7 @@ public class FortunoContext : DbContext
              .WithMany(l => l.Combos)
              .HasForeignKey(x => x.LotteryId)
              .HasConstraintName("fk_lottery_lottery_combo")
-             .OnDelete(DeleteBehavior.ClientSetNull);
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 
@@ -138,7 +139,7 @@ public class FortunoContext : DbContext
              .WithMany(l => l.Tickets)
              .HasForeignKey(x => x.LotteryId)
              .HasConstraintName("fk_lottery_ticket")
-             .OnDelete(DeleteBehavior.ClientSetNull);
+             .OnDelete(DeleteBehavior.Cascade);
 
             e.HasIndex(x => new { x.LotteryId, x.TicketNumber }).IsUnique().HasDatabaseName("fortuna_tickets_lottery_number_uq");
             e.HasIndex(x => new { x.LotteryId, x.RefundState }).HasDatabaseName("fortuna_tickets_lottery_refund_ix");
@@ -169,7 +170,7 @@ public class FortunoContext : DbContext
              .WithMany(l => l.Raffles)
              .HasForeignKey(x => x.LotteryId)
              .HasConstraintName("fk_lottery_raffle")
-             .OnDelete(DeleteBehavior.ClientSetNull);
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 
@@ -188,7 +189,7 @@ public class FortunoContext : DbContext
              .WithMany(r => r.Awards)
              .HasForeignKey(x => x.RaffleId)
              .HasConstraintName("fk_raffle_raffle_award")
-             .OnDelete(DeleteBehavior.ClientSetNull);
+             .OnDelete(DeleteBehavior.Cascade);
 
             e.HasIndex(x => new { x.RaffleId, x.Position }).IsUnique().HasDatabaseName("fortuna_raffle_awards_raffle_position_uq");
         });
@@ -213,7 +214,7 @@ public class FortunoContext : DbContext
              .WithMany(r => r.Winners)
              .HasForeignKey(x => x.RaffleId)
              .HasConstraintName("fk_raffle_raffle_winner")
-             .OnDelete(DeleteBehavior.ClientSetNull);
+             .OnDelete(DeleteBehavior.Cascade);
 
             e.HasOne(x => x.RaffleAward)
              .WithMany()
@@ -262,6 +263,12 @@ public class FortunoContext : DbContext
 
             e.HasIndex(x => x.InvoiceId).IsUnique().HasDatabaseName("fortuna_invoice_referrers_invoice_uq");
             e.HasIndex(x => new { x.ReferrerUserId, x.LotteryId }).HasDatabaseName("fortuna_invoice_referrers_referrer_lottery_ix");
+
+            e.HasOne<Lottery>()
+             .WithMany()
+             .HasForeignKey(x => x.LotteryId)
+             .HasConstraintName("fk_lottery_invoice_referrer")
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 
@@ -282,7 +289,7 @@ public class FortunoContext : DbContext
              .WithMany()
              .HasForeignKey(x => x.TicketId)
              .HasConstraintName("fk_ticket_refund_log")
-             .OnDelete(DeleteBehavior.ClientSetNull);
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 
@@ -302,6 +309,12 @@ public class FortunoContext : DbContext
 
             e.HasIndex(x => new { x.LotteryId, x.ExpiresAt }).HasDatabaseName("fortuna_number_reservations_lottery_expires_ix");
             e.HasIndex(x => new { x.UserId, x.LotteryId }).HasDatabaseName("fortuna_number_reservations_user_lottery_ix");
+
+            e.HasOne<Lottery>()
+             .WithMany()
+             .HasForeignKey(x => x.LotteryId)
+             .HasConstraintName("fk_lottery_number_reservation")
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 
@@ -336,7 +349,7 @@ public class FortunoContext : DbContext
              .WithMany()
              .HasForeignKey(x => x.LotteryId)
              .HasConstraintName("fk_ticket_order_lottery")
-             .OnDelete(DeleteBehavior.ClientSetNull);
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 
@@ -358,7 +371,7 @@ public class FortunoContext : DbContext
              .WithMany(o => o.Numbers)
              .HasForeignKey(x => x.TicketOrderId)
              .HasConstraintName("fk_ticket_order_number_order")
-             .OnDelete(DeleteBehavior.ClientSetNull);
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

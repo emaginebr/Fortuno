@@ -18,6 +18,7 @@ BEGIN;
 CREATE TABLE fortuna_lotteries (
     lottery_id            bigint          GENERATED ALWAYS AS IDENTITY,
     store_id              bigint          NOT NULL,
+    edition_number        integer         NOT NULL DEFAULT 1,
     name                  varchar(160)    NOT NULL,
     slug                  varchar(200)    NOT NULL,
     description_md        text            NOT NULL,
@@ -60,7 +61,7 @@ CREATE TABLE fortuna_lottery_images (
     CONSTRAINT fortuna_lottery_images_pkey PRIMARY KEY (lottery_image_id),
     CONSTRAINT fk_lottery_lottery_image
         FOREIGN KEY (lottery_id) REFERENCES fortuna_lotteries (lottery_id)
-        ON DELETE NO ACTION
+        ON DELETE CASCADE
 );
 
 -- ----------------------------------------------------------------------------
@@ -79,7 +80,7 @@ CREATE TABLE fortuna_lottery_combos (
     CONSTRAINT fortuna_lottery_combos_pkey PRIMARY KEY (lottery_combo_id),
     CONSTRAINT fk_lottery_lottery_combo
         FOREIGN KEY (lottery_id) REFERENCES fortuna_lotteries (lottery_id)
-        ON DELETE NO ACTION
+        ON DELETE CASCADE
 );
 
 -- ----------------------------------------------------------------------------
@@ -97,7 +98,7 @@ CREATE TABLE fortuna_tickets (
     CONSTRAINT fortuna_tickets_pkey PRIMARY KEY (ticket_id),
     CONSTRAINT fk_lottery_ticket
         FOREIGN KEY (lottery_id) REFERENCES fortuna_lotteries (lottery_id)
-        ON DELETE NO ACTION
+        ON DELETE CASCADE
 );
 CREATE UNIQUE INDEX fortuna_tickets_lottery_number_uq ON fortuna_tickets (lottery_id, ticket_number);
 CREATE        INDEX fortuna_tickets_lottery_refund_ix ON fortuna_tickets (lottery_id, refund_state);
@@ -125,7 +126,7 @@ CREATE TABLE fortuna_raffles (
     CONSTRAINT fortuna_raffles_pkey PRIMARY KEY (raffle_id),
     CONSTRAINT fk_lottery_raffle
         FOREIGN KEY (lottery_id) REFERENCES fortuna_lotteries (lottery_id)
-        ON DELETE NO ACTION
+        ON DELETE CASCADE
 );
 
 COMMENT ON COLUMN fortuna_raffles.status IS 'Fortuno.Domain.Enums.RaffleStatus (0=Open)';
@@ -141,7 +142,7 @@ CREATE TABLE fortuna_raffle_awards (
     CONSTRAINT fortuna_raffle_awards_pkey PRIMARY KEY (raffle_award_id),
     CONSTRAINT fk_raffle_raffle_award
         FOREIGN KEY (raffle_id) REFERENCES fortuna_raffles (raffle_id)
-        ON DELETE NO ACTION
+        ON DELETE CASCADE
 );
 CREATE UNIQUE INDEX fortuna_raffle_awards_raffle_position_uq
     ON fortuna_raffle_awards (raffle_id, position);
@@ -161,7 +162,7 @@ CREATE TABLE fortuna_raffle_winners (
     CONSTRAINT fortuna_raffle_winners_pkey PRIMARY KEY (raffle_winner_id),
     CONSTRAINT fk_raffle_raffle_winner
         FOREIGN KEY (raffle_id) REFERENCES fortuna_raffles (raffle_id)
-        ON DELETE NO ACTION,
+        ON DELETE CASCADE,
     CONSTRAINT fk_raffle_award_raffle_winner
         FOREIGN KEY (raffle_award_id) REFERENCES fortuna_raffle_awards (raffle_award_id)
         ON DELETE NO ACTION,
@@ -195,7 +196,10 @@ CREATE TABLE fortuna_invoice_referrers (
     lottery_id                    bigint   NOT NULL,
     referral_percent_at_purchase  real     NOT NULL,
     created_at                    timestamp without time zone NOT NULL DEFAULT now(),
-    CONSTRAINT fortuna_invoice_referrers_pkey PRIMARY KEY (invoice_referrer_id)
+    CONSTRAINT fortuna_invoice_referrers_pkey PRIMARY KEY (invoice_referrer_id),
+    CONSTRAINT fk_lottery_invoice_referrer
+        FOREIGN KEY (lottery_id) REFERENCES fortuna_lotteries (lottery_id)
+        ON DELETE CASCADE
 );
 CREATE UNIQUE INDEX fortuna_invoice_referrers_invoice_uq
     ON fortuna_invoice_referrers (invoice_id);
@@ -215,7 +219,7 @@ CREATE TABLE fortuna_refund_logs (
     CONSTRAINT fortuna_refund_logs_pkey PRIMARY KEY (refund_log_id),
     CONSTRAINT fk_ticket_refund_log
         FOREIGN KEY (ticket_id) REFERENCES fortuna_tickets (ticket_id)
-        ON DELETE NO ACTION
+        ON DELETE CASCADE
 );
 
 -- ----------------------------------------------------------------------------
@@ -229,7 +233,10 @@ CREATE TABLE fortuna_number_reservations (
     ticket_number   bigint   NOT NULL,
     expires_at      timestamp without time zone NOT NULL,
     created_at      timestamp without time zone NOT NULL DEFAULT now(),
-    CONSTRAINT fortuna_number_reservations_pkey PRIMARY KEY (reservation_id)
+    CONSTRAINT fortuna_number_reservations_pkey PRIMARY KEY (reservation_id),
+    CONSTRAINT fk_lottery_number_reservation
+        FOREIGN KEY (lottery_id) REFERENCES fortuna_lotteries (lottery_id)
+        ON DELETE CASCADE
 );
 CREATE INDEX fortuna_number_reservations_lottery_expires_ix
     ON fortuna_number_reservations (lottery_id, expires_at);
@@ -268,7 +275,7 @@ CREATE TABLE fortuna_ticket_orders (
     CONSTRAINT fortuna_ticket_orders_pkey PRIMARY KEY (ticket_order_id),
     CONSTRAINT fk_ticket_order_lottery
         FOREIGN KEY (lottery_id) REFERENCES fortuna_lotteries (lottery_id)
-        ON DELETE NO ACTION
+        ON DELETE CASCADE
 );
 CREATE UNIQUE INDEX ix_ticket_orders_invoice_id
     ON fortuna_ticket_orders (invoice_id);
@@ -295,7 +302,7 @@ CREATE TABLE fortuna_ticket_order_numbers (
     CONSTRAINT fortuna_ticket_order_numbers_pkey PRIMARY KEY (ticket_order_number_id),
     CONSTRAINT fk_ticket_order_number_order
         FOREIGN KEY (ticket_order_id) REFERENCES fortuna_ticket_orders (ticket_order_id)
-        ON DELETE NO ACTION
+        ON DELETE CASCADE
 );
 CREATE        INDEX ix_ticket_order_numbers_order_id
     ON fortuna_ticket_order_numbers (ticket_order_id);

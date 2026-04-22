@@ -1,0 +1,36 @@
+meta {
+  name: Lottery by Slug (public)
+  type: graphql
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/graphql
+  body: graphql
+  auth: none
+}
+
+body:graphql {
+  query LotteryBySlug($slug: String!) {
+    lotteryBySlug(slug: $slug) {
+      lotteryId
+      storeId
+      name
+      slug
+      descriptionMd
+      ticketPrice
+      totalPrizeValue
+      ticketMin
+      ticketMax
+      status
+      createdAt
+      updatedAt
+    }
+  }
+}
+
+body:graphql:vars {
+  {
+    "slug": "minha-lottery"
+  }
+}
