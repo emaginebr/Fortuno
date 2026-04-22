@@ -1,0 +1,19 @@
+meta {
+  name: Check QR Code Status
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/tickets/qrcode/{{invoiceId}}/status
+  body: none
+  auth: bearer
+}
+
+headers {
+  X-Tenant-Id: {{tenant}}
+}
+
+auth:bearer {
+  token: {{token}}
+}

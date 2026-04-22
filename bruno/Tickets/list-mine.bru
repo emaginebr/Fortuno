@@ -7,16 +7,24 @@ meta {
 get {
   url: {{baseUrl}}/tickets/mine?lotteryId={{lotteryId}}
   body: none
-  auth: none
-}
-
-headers {
-  Authorization: Basic {{accessToken}}
+  auth: bearer
 }
 
 params:query {
   lotteryId: {{lotteryId}}
-  ~number:
-  ~fromDate:
-  ~toDate:
+  ~number: 
+  ~fromDate: 
+  ~toDate: 
+}
+
+headers {
+  X-Tenant-Id: fortuno
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  lotteryId: 1
 }

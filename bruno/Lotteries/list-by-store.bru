@@ -7,11 +7,11 @@ meta {
 get {
   url: {{baseUrl}}/lotteries/store/{{storeId}}
   body: none
-  auth: none
+  auth: bearer
 }
 
-headers {
-  Authorization: Basic {{accessToken}}
+auth:bearer {
+  token: {{token}}
 }
 
 vars:pre-request {

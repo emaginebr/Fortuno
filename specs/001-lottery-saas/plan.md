@@ -171,7 +171,7 @@ src/
 │   │   ├── RaffleStatus.cs             # Open, Closed, Cancelled
 │   │   ├── TicketRefundState.cs        # None, PendingRefund, Refunded
 │   │   ├── NumberType.cs               # Int64, Composed3, ... Composed8
-│   │   └── PurchaseAssignmentMode.cs   # Random, UserPicks
+│   │   └── TicketOrderMode.cs   # Random, UserPicks
 │   ├── Interfaces/
 │   │   ├── ILotteryService.cs
 │   │   ├── IPurchaseService.cs

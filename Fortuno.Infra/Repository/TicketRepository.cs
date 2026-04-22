@@ -10,16 +10,44 @@ public class TicketRepository : Repository<Ticket>, ITicketRepository<Ticket>
 {
     public TicketRepository(FortunoContext context) : base(context) { }
 
-    public async Task<List<Ticket>> ListByUserAsync(long userId, long? lotteryId = null, long? numberContains = null)
+    public override async Task<Ticket?> GetByIdAsync(long id)
+        => await _context.Tickets.AsNoTracking()
+            .Include(x => x.Lottery)
+            .FirstOrDefaultAsync(x => x.TicketId == id);
+
+    public async Task<(List<Ticket> Items, long TotalCount)> SearchByUserAsync(
+        long userId,
+        long? lotteryId = null,
+        long? ticketNumber = null,
+        string? ticketValue = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        int page = 1,
+        int pageSize = 20)
     {
-        var q = _context.Tickets.AsNoTracking().Where(x => x.UserId == userId);
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 20;
+        if (pageSize > 200) pageSize = 200;
+
+        var q = _context.Tickets.AsNoTracking().Include(x => x.Lottery).Where(x => x.UserId == userId);
         if (lotteryId.HasValue) q = q.Where(x => x.LotteryId == lotteryId.Value);
-        if (numberContains.HasValue) q = q.Where(x => x.TicketNumber == numberContains.Value);
-        return await q.OrderByDescending(x => x.CreatedAt).ToListAsync();
+        if (ticketNumber.HasValue) q = q.Where(x => x.TicketNumber == ticketNumber.Value);
+        if (!string.IsNullOrWhiteSpace(ticketValue)) q = q.Where(x => x.TicketValue == ticketValue);
+        if (fromDate.HasValue) q = q.Where(x => x.CreatedAt >= fromDate.Value);
+        if (toDate.HasValue) q = q.Where(x => x.CreatedAt <= toDate.Value);
+
+        var total = await q.LongCountAsync();
+        var items = await q
+            .OrderByDescending(x => x.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, total);
     }
 
     public async Task<List<Ticket>> ListByLotteryAsync(long lotteryId)
-        => await _context.Tickets.AsNoTracking().Where(x => x.LotteryId == lotteryId).ToListAsync();
+        => await _context.Tickets.AsNoTracking().Include(x => x.Lottery).Where(x => x.LotteryId == lotteryId).ToListAsync();
 
     public async Task<List<long>> ListSoldNumbersAsync(long lotteryId)
         => await _context.Tickets.AsNoTracking()
@@ -32,6 +60,7 @@ public class TicketRepository : Repository<Ticket>, ITicketRepository<Ticket>
 
     public async Task<Ticket?> GetByLotteryAndNumberAsync(long lotteryId, long ticketNumber)
         => await _context.Tickets.AsNoTracking()
+            .Include(x => x.Lottery)
             .FirstOrDefaultAsync(x => x.LotteryId == lotteryId && x.TicketNumber == ticketNumber);
 
     public async Task<List<Ticket>> InsertBatchAsync(IEnumerable<Ticket> tickets)
@@ -52,5 +81,5 @@ public class TicketRepository : Repository<Ticket>, ITicketRepository<Ticket>
     }
 
     public async Task<List<Ticket>> ListByInvoiceAsync(long invoiceId)
-        => await _context.Tickets.AsNoTracking().Where(x => x.InvoiceId == invoiceId).ToListAsync();
+        => await _context.Tickets.AsNoTracking().Include(x => x.Lottery).Where(x => x.InvoiceId == invoiceId).ToListAsync();
 }

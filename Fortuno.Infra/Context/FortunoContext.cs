@@ -18,7 +18,8 @@ public class FortunoContext : DbContext
     public DbSet<InvoiceReferrer> InvoiceReferrers => Set<InvoiceReferrer>();
     public DbSet<RefundLog> RefundLogs => Set<RefundLog>();
     public DbSet<NumberReservation> NumberReservations => Set<NumberReservation>();
-    public DbSet<WebhookEvent> WebhookEvents => Set<WebhookEvent>();
+    public DbSet<TicketOrder> TicketOrders => Set<TicketOrder>();
+    public DbSet<TicketOrderNumber> TicketOrderNumbers => Set<TicketOrderNumber>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,7 +36,8 @@ public class FortunoContext : DbContext
         ConfigureInvoiceReferrer(modelBuilder);
         ConfigureRefundLog(modelBuilder);
         ConfigureNumberReservation(modelBuilder);
-        ConfigureWebhookEvent(modelBuilder);
+        ConfigureTicketOrder(modelBuilder);
+        ConfigureTicketOrderNumber(modelBuilder);
     }
 
     private static void ConfigureLottery(ModelBuilder mb)
@@ -128,6 +130,7 @@ public class FortunoContext : DbContext
             e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
             e.Property(x => x.InvoiceId).HasColumnName("invoice_id").IsRequired();
             e.Property(x => x.TicketNumber).HasColumnName("ticket_number").IsRequired();
+            e.Property(x => x.TicketValue).HasColumnName("ticket_value").HasColumnType("varchar(64)").IsRequired().HasDefaultValue("");
             e.Property(x => x.RefundState).HasColumnName("refund_state").HasConversion<int>().HasDefaultValue(Fortuno.Domain.Enums.TicketRefundState.None);
             e.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
 
@@ -141,6 +144,7 @@ public class FortunoContext : DbContext
             e.HasIndex(x => new { x.LotteryId, x.RefundState }).HasDatabaseName("fortuna_tickets_lottery_refund_ix");
             e.HasIndex(x => new { x.UserId, x.CreatedAt }).HasDatabaseName("fortuna_tickets_user_created_ix");
             e.HasIndex(x => x.InvoiceId).HasDatabaseName("fortuna_tickets_invoice_ix");
+            e.HasIndex(x => new { x.LotteryId, x.TicketValue }).HasDatabaseName("fortuna_tickets_lottery_value_ix");
         });
     }
 
@@ -301,19 +305,60 @@ public class FortunoContext : DbContext
         });
     }
 
-    private static void ConfigureWebhookEvent(ModelBuilder mb)
+    private static void ConfigureTicketOrder(ModelBuilder mb)
     {
-        mb.Entity<WebhookEvent>(e =>
+        mb.Entity<TicketOrder>(e =>
         {
-            e.ToTable("fortuna_webhook_events");
-            e.HasKey(x => x.WebhookEventId).HasName("fortuna_webhook_events_pkey");
-            e.Property(x => x.WebhookEventId).HasColumnName("webhook_event_id").UseIdentityAlwaysColumn();
+            e.ToTable("fortuna_ticket_orders");
+            e.HasKey(x => x.TicketOrderId).HasName("fortuna_ticket_orders_pkey");
+            e.Property(x => x.TicketOrderId).HasColumnName("ticket_order_id").UseIdentityAlwaysColumn();
             e.Property(x => x.InvoiceId).HasColumnName("invoice_id").IsRequired();
-            e.Property(x => x.EventType).HasColumnName("event_type").HasColumnType("varchar(40)").IsRequired();
-            e.Property(x => x.ReceivedAt).HasColumnName("received_at").HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
-            e.Property(x => x.PayloadHash).HasColumnName("payload_hash").HasColumnType("varchar(64)");
+            e.Property(x => x.InvoiceNumber).HasColumnName("invoice_number").HasColumnType("varchar(40)").IsRequired();
+            e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+            e.Property(x => x.LotteryId).HasColumnName("lottery_id").IsRequired();
+            e.Property(x => x.Quantity).HasColumnName("quantity").IsRequired();
+            e.Property(x => x.Mode).HasColumnName("mode").HasConversion<int>().IsRequired();
+            e.Property(x => x.ReferralCode).HasColumnName("referral_code").HasColumnType("varchar(8)");
+            e.Property(x => x.ReferralPercentAtPurchase).HasColumnName("referral_percent_at_purchase").HasDefaultValue(0f);
+            e.Property(x => x.TotalAmount).HasColumnName("total_amount").HasColumnType("numeric(14,2)").IsRequired();
+            e.Property(x => x.BrCode).HasColumnName("br_code").HasColumnType("varchar(2000)");
+            e.Property(x => x.BrCodeBase64).HasColumnName("br_code_base64").HasColumnType("text");
+            e.Property(x => x.ExpiredAt).HasColumnName("expired_at").HasColumnType("timestamp without time zone").IsRequired();
+            e.Property(x => x.Status).HasColumnName("status").HasConversion<int>().HasDefaultValue(Fortuno.Domain.Enums.TicketOrderStatus.Pending);
+            e.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
+            e.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
 
-            e.HasIndex(x => new { x.InvoiceId, x.EventType }).IsUnique().HasDatabaseName("fortuna_webhook_events_invoice_type_uq");
+            e.HasIndex(x => x.InvoiceId).IsUnique().HasDatabaseName("ix_ticket_orders_invoice_id");
+            e.HasIndex(x => x.UserId).HasDatabaseName("ix_ticket_orders_user_id");
+            e.HasIndex(x => x.LotteryId).HasDatabaseName("ix_ticket_orders_lottery_id");
+
+            e.HasOne(x => x.Lottery)
+             .WithMany()
+             .HasForeignKey(x => x.LotteryId)
+             .HasConstraintName("fk_ticket_order_lottery")
+             .OnDelete(DeleteBehavior.ClientSetNull);
+        });
+    }
+
+    private static void ConfigureTicketOrderNumber(ModelBuilder mb)
+    {
+        mb.Entity<TicketOrderNumber>(e =>
+        {
+            e.ToTable("fortuna_ticket_order_numbers");
+            e.HasKey(x => x.TicketOrderNumberId).HasName("fortuna_ticket_order_numbers_pkey");
+            e.Property(x => x.TicketOrderNumberId).HasColumnName("ticket_order_number_id").UseIdentityAlwaysColumn();
+            e.Property(x => x.TicketOrderId).HasColumnName("ticket_order_id").IsRequired();
+            e.Property(x => x.TicketNumber).HasColumnName("ticket_number").IsRequired();
+            e.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
+
+            e.HasIndex(x => x.TicketOrderId).HasDatabaseName("ix_ticket_order_numbers_order_id");
+            e.HasIndex(x => new { x.TicketOrderId, x.TicketNumber }).IsUnique().HasDatabaseName("ix_ticket_order_numbers_order_number_uq");
+
+            e.HasOne(x => x.Order)
+             .WithMany(o => o.Numbers)
+             .HasForeignKey(x => x.TicketOrderId)
+             .HasConstraintName("fk_ticket_order_number_order")
+             .OnDelete(DeleteBehavior.ClientSetNull);
         });
     }
 }

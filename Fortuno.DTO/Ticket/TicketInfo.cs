@@ -20,6 +20,15 @@ public class TicketInfo
     [JsonPropertyName("ticketNumber")]
     public long TicketNumber { get; set; }
 
+    /// <summary>
+    /// Representação textual ordenada de <c>TicketNumber</c> respeitando o
+    /// <c>NumberType</c> da Lottery. Int64 → decimal direto; Composed → componentes
+    /// de 2 dígitos ordenados ascendente e separados por "-" (ex.: "05-11-28-39-60").
+    /// Persistido em <c>fortuna_tickets.ticket_value</c> para permitir busca.
+    /// </summary>
+    [JsonPropertyName("ticketValue")]
+    public string TicketValue { get; set; } = string.Empty;
+
     [JsonPropertyName("refundState")]
     public TicketRefundStateDto RefundState { get; set; }
 

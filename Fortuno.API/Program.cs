@@ -1,6 +1,5 @@
 using FluentValidation;
 using FluentValidation.AspNetCore;
-using Fortuno.API.Filters;
 using Fortuno.API.Validators;
 using Fortuno.Application;
 using Fortuno.DTO.Common;
@@ -18,9 +17,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Fortuno wiring (DI centralizado em Fortuno.Application/Startup)
 builder.Services.AddFortuno(builder.Configuration);
-
-// Webhook HMAC filter
-builder.Services.AddScoped<ProxyPayWebhookHmacFilter>();
 
 // FluentValidation (validadores auto-registrados via assembly scan)
 builder.Services.AddValidatorsFromAssemblyContaining<LotteryInsertInfoValidator>();

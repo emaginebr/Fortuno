@@ -22,18 +22,24 @@ public class TicketsController : ControllerBase
     public async Task<IActionResult> Mine(
         [FromQuery] long? lotteryId,
         [FromQuery] long? number,
+        [FromQuery] string? ticketValue,
         [FromQuery] DateTime? fromDate,
-        [FromQuery] DateTime? toDate)
+        [FromQuery] DateTime? toDate,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
         var userId = User.GetCurrentUserId();
-        var list = await _tickets.ListForUserAsync(userId, new TicketSearchQuery
+        var result = await _tickets.ListForUserAsync(userId, new TicketSearchQuery
         {
             LotteryId = lotteryId,
             Number = number,
+            TicketValue = ticketValue,
             FromDate = fromDate,
-            ToDate = toDate
+            ToDate = toDate,
+            Page = page,
+            PageSize = pageSize
         });
-        return Ok(list);
+        return Ok(result);
     }
 
     [HttpGet("{ticketId:long}")]
@@ -41,5 +47,29 @@ public class TicketsController : ControllerBase
     {
         var info = await _tickets.GetByIdAsync(ticketId, User.GetCurrentUserId());
         return Ok(info);
+    }
+
+    [HttpPost("qrcode")]
+    public async Task<IActionResult> CreateQRCode([FromBody] TicketOrderRequest request)
+    {
+        try
+        {
+            var info = await _tickets.CreateQRCodeAsync(User.GetCurrentUserId(), request);
+            return StatusCode(201, info);
+        }
+        catch (KeyNotFoundException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
+        catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
+    }
+
+    [HttpGet("qrcode/{invoiceId:long}/status")]
+    public async Task<IActionResult> CheckQRCodeStatus(long invoiceId)
+    {
+        try
+        {
+            var info = await _tickets.CheckQRCodeStatusAsync(invoiceId);
+            return Ok(info);
+        }
+        catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
 }

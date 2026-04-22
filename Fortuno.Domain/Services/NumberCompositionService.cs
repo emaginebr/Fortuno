@@ -82,6 +82,22 @@ public class NumberCompositionService : INumberCompositionService
         return total;
     }
 
+    /// <summary>
+    /// Formata o número composto em string legível. Int64 → a própria string
+    /// decimal. Tipos compostos → componentes de 2 dígitos (zero-padded)
+    /// **ordenados em ordem ascendente** e separados por "-" (ex.:
+    /// "60-39-05-28-11" vira "05-11-28-39-60"). A ordenação é determinística
+    /// e permite busca/comparação por valor.
+    /// </summary>
+    public string Format(NumberType type, long composedValue)
+    {
+        if (type == NumberType.Int64)
+            return composedValue.ToString();
+
+        var components = Decompose(type, composedValue);
+        return string.Join("-", components.OrderBy(c => c).Select(c => c.ToString("D2")));
+    }
+
     public IEnumerable<long> EnumerateAll(NumberType type, int min, int max)
     {
         if (type == NumberType.Int64)

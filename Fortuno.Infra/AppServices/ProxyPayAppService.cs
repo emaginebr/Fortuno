@@ -1,6 +1,7 @@
-using Fortuno.DTO.ProxyPay;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
+using Fortuno.DTO.ProxyPay;
 using Fortuno.DTO.Settings;
 using Fortuno.Infra.Interfaces.AppServices;
 using Microsoft.AspNetCore.Http;
@@ -11,6 +12,11 @@ namespace Fortuno.Infra.AppServices;
 
 public class ProxyPayAppService : IProxyPayAppService
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private readonly HttpClient _http;
     private readonly ProxyPaySettings _settings;
     private readonly IHttpContextAccessor _httpContext;
@@ -29,8 +35,6 @@ public class ProxyPayAppService : IProxyPayAppService
 
         if (!string.IsNullOrWhiteSpace(_settings.ApiUrl))
         {
-            // BaseAddress precisa terminar com `/` para que paths relativos
-            // (ex.: `graphql`) preservem o segmento `/api` da configuração.
             var baseUrl = _settings.ApiUrl.EndsWith('/') ? _settings.ApiUrl : _settings.ApiUrl + "/";
             _http.BaseAddress = new Uri(baseUrl);
         }
@@ -43,7 +47,7 @@ public class ProxyPayAppService : IProxyPayAppService
     {
         using var req = new HttpRequestMessage(HttpMethod.Post, "graphql")
         {
-            Content = JsonContent.Create(new { query = "{ myStore { storeId userId name } }" })
+            Content = JsonContent.Create(new { query = "{ myStore { storeId userId clientId name } }" })
         };
         req.Headers.TryAddWithoutValidation("X-Tenant-Id", _settings.TenantId);
         ForwardAuthHeader(req);
@@ -60,68 +64,73 @@ public class ProxyPayAppService : IProxyPayAppService
 
         if (!res.IsSuccessStatusCode) return null;
 
-        var payload = System.Text.Json.JsonSerializer.Deserialize<GraphQLResponse<MyStoreData>>(body,
-            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        var payload = JsonSerializer.Deserialize<GraphQLResponse<MyStoreData>>(body, JsonOptions);
         var store = payload?.Data?.MyStore?.FirstOrDefault(s => s.StoreId == storeId);
         if (store is null)
         {
             _logger.LogInformation(
-                "ProxyPay: storeId={StoreId} não encontrado na lista de myStore do usuário autenticado.",
-                storeId);
+                "ProxyPay: storeId={StoreId} não encontrado em myStore.", storeId);
             return null;
         }
 
         _logger.LogInformation(
-            "ProxyPay: store encontrada storeId={StoreId} userId={UserId} name={Name}",
-            store.StoreId, store.UserId, store.Name);
+            "ProxyPay: store encontrada storeId={StoreId} userId={UserId} clientId={ClientId}",
+            store.StoreId, store.UserId, store.ClientId);
 
         return new ProxyPayStoreInfo
         {
             StoreId = store.StoreId,
             OwnerUserId = store.UserId,
-            Name = store.Name ?? string.Empty
+            Name = store.Name ?? string.Empty,
+            ClientId = store.ClientId ?? string.Empty
         };
     }
 
-    public async Task<ProxyPayInvoiceInfo> CreateInvoiceAsync(ProxyPayCreateInvoiceRequest request)
+    public async Task<ProxyPayQRCodeResponse> CreateQRCodeAsync(ProxyPayQRCodeRequest request)
     {
-        _logger.LogInformation(
-            "ProxyPay: POST /api/invoices storeId={StoreId} amount={Amount}",
-            request.StoreId, request.Amount);
-
-        var res = await _http.PostAsJsonAsync("/api/invoices", new
+        using var req = new HttpRequestMessage(HttpMethod.Post, "payment/qrcode")
         {
-            storeId = request.StoreId,
-            amount = request.Amount,
-            description = request.Description,
-            metadata = request.Metadata
-        });
+            Content = JsonContent.Create(request)
+        };
+        req.Headers.TryAddWithoutValidation("X-Tenant-Id", _settings.TenantId);
+        ForwardAuthHeader(req);
+
+        _logger.LogInformation(
+            "ProxyPay: POST /payment/qrcode clientId={ClientId} quantity={Qty}",
+            request.ClientId, request.Items.Sum(i => i.Quantity));
+
+        var res = await _http.SendAsync(req);
         var body = await res.Content.ReadAsStringAsync();
         _logger.LogInformation(
-            "ProxyPay: resposta CreateInvoice status={Status} body={Body}",
+            "ProxyPay: resposta CreateQRCode status={Status} body={Body}",
             (int)res.StatusCode, body);
 
-        res.EnsureSuccessStatusCode();
-        var dto = System.Text.Json.JsonSerializer.Deserialize<InvoiceDto>(body,
-            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-            ?? throw new InvalidOperationException("ProxyPay retornou resposta vazia ao criar Invoice.");
-        return MapInvoice(dto);
+        if (!res.IsSuccessStatusCode)
+            throw new InvalidOperationException(
+                $"ProxyPay indisponível ao criar QR Code (status {(int)res.StatusCode}). Body: {Truncate(body, 500)}");
+
+        var dto = JsonSerializer.Deserialize<ProxyPayQRCodeResponse>(body, JsonOptions)
+            ?? throw new InvalidOperationException("ProxyPay retornou resposta vazia ao criar QR Code.");
+        return dto;
     }
 
-    public async Task<ProxyPayInvoiceInfo?> GetInvoiceAsync(long invoiceId)
+    public async Task<ProxyPayQRCodeStatusResponse?> GetQRCodeStatusAsync(long invoiceId)
     {
-        _logger.LogInformation("ProxyPay: GET /api/invoices/{InvoiceId}", invoiceId);
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"payment/qrcode/status/{invoiceId}");
+        req.Headers.TryAddWithoutValidation("X-Tenant-Id", _settings.TenantId);
+        ForwardAuthHeader(req);
 
-        var res = await _http.GetAsync($"/api/invoices/{invoiceId}");
+        _logger.LogInformation("ProxyPay: GET /payment/qrcode/status/{InvoiceId}", invoiceId);
+
+        var res = await _http.SendAsync(req);
         var body = await res.Content.ReadAsStringAsync();
         _logger.LogInformation(
-            "ProxyPay: resposta GetInvoice status={Status} body={Body}",
+            "ProxyPay: resposta QRCodeStatus status={Status} body={Body}",
             (int)res.StatusCode, body);
 
         if (!res.IsSuccessStatusCode) return null;
-        var dto = System.Text.Json.JsonSerializer.Deserialize<InvoiceDto>(body,
-            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        return dto is null ? null : MapInvoice(dto);
+
+        return JsonSerializer.Deserialize<ProxyPayQRCodeStatusResponse>(body, JsonOptions);
     }
 
     private void ForwardAuthHeader(HttpRequestMessage req)
@@ -131,18 +140,8 @@ public class ProxyPayAppService : IProxyPayAppService
             req.Headers.TryAddWithoutValidation("Authorization", auth);
     }
 
-    private static ProxyPayInvoiceInfo MapInvoice(InvoiceDto dto) => new()
-    {
-        InvoiceId = dto.InvoiceId,
-        StoreId = dto.StoreId,
-        Amount = dto.Amount,
-        PaidAmount = dto.PaidAmount,
-        Status = dto.Status ?? string.Empty,
-        PaidAt = dto.PaidAt,
-        PixQrCode = dto.PixQrCode,
-        PixCopyPaste = dto.PixCopyPaste,
-        ExpiresAt = dto.ExpiresAt
-    };
+    private static string Truncate(string s, int max) =>
+        string.IsNullOrEmpty(s) ? "<vazio>" : (s.Length <= max ? s : s[..max] + "...");
 
     private class GraphQLResponse<T>
     {
@@ -158,19 +157,7 @@ public class ProxyPayAppService : IProxyPayAppService
     {
         [JsonPropertyName("storeId")] public long StoreId { get; set; }
         [JsonPropertyName("userId")] public long UserId { get; set; }
+        [JsonPropertyName("clientId")] public string? ClientId { get; set; }
         [JsonPropertyName("name")] public string? Name { get; set; }
-    }
-
-    private class InvoiceDto
-    {
-        [JsonPropertyName("invoiceId")] public long InvoiceId { get; set; }
-        [JsonPropertyName("storeId")] public long StoreId { get; set; }
-        [JsonPropertyName("amount")] public decimal Amount { get; set; }
-        [JsonPropertyName("paidAmount")] public decimal? PaidAmount { get; set; }
-        [JsonPropertyName("status")] public string? Status { get; set; }
-        [JsonPropertyName("paidAt")] public DateTime? PaidAt { get; set; }
-        [JsonPropertyName("pixQrCode")] public string? PixQrCode { get; set; }
-        [JsonPropertyName("pixCopyPaste")] public string? PixCopyPaste { get; set; }
-        [JsonPropertyName("expiresAt")] public DateTime? ExpiresAt { get; set; }
     }
 }

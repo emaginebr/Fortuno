@@ -1,0 +1,38 @@
+meta {
+  name: Create QR Code (Random)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/tickets/qrcode
+  body: json
+  auth: bearer
+}
+
+headers {
+  X-Tenant-Id: {{tenant}}
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "lotteryId": {{lotteryId}},
+    "quantity": 3,
+    "mode": 1
+  }
+}
+
+vars:pre-request {
+  lotteryId: 1
+}
+
+script:post-response {
+  if (res.status >= 200 && res.status < 300 && res.body && res.body.invoiceId) {
+    bru.setVar("invoiceId", res.body.invoiceId);
+  }
+}
