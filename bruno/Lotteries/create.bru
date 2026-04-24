@@ -7,31 +7,35 @@ meta {
 post {
   url: {{baseUrl}}/lotteries
   body: json
-  auth: none
+  auth: bearer
 }
 
 headers {
-  Authorization: Basic {{accessToken}}
   Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{token}}
 }
 
 body:json {
   {
-    "storeId": {{storeId}},
-    "name": "Bruno Test Lottery",
-    "descriptionMd": "# Description\nCreated via Bruno collection.",
-    "rulesMd": "## Rules\n- Rule 1\n- Rule 2",
-    "privacyPolicyMd": "## Privacy\nStandard policy.",
-    "ticketPrice": 10.00,
-    "totalPrizeValue": 10000.00,
-    "ticketMin": 1,
-    "ticketMax": 100,
-    "ticketNumIni": 1,
-    "ticketNumEnd": 1000,
-    "numberType": "Int64",
-    "numberValueMin": 0,
-    "numberValueMax": 0,
-    "referralPercent": 5.0
+      "lotteryId": null,
+      "name": "Uma moto de 100 mil pela educação sem fronteiras",
+      "descriptionMd": "- **1 motocicleta 0 km**, valor total de R$ 100.000,00 (cem mil reais).\n- Modelo divulgado no canal oficial do IDE Sem Fronteiras a partir da emissão do Certificado de Autorização da SECAP.\n- Documentação (DUT, licenciamento, emplacamento e IPVA do ano de entrega) custeada pela promotora.\n- Seguro do primeiro ano incluso.\n- Entrega acordada com o(a) contemplado(a) em concessionária autorizada ou transporte até o endereço do(a) ganhador(a) dentro do território nacional.",
+      "rulesMd": "Regras serão definidas na etapa 3.",
+      "privacyPolicyMd": "Política de privacidade será definida na etapa 3.",
+      "ticketPrice": 0.99,
+      "totalPrizeValue": 100000,
+      "ticketMin": 1,
+      "ticketMax": 300,
+      "ticketNumIni": 1,
+      "ticketNumEnd": 1000,
+      "numberType": 1,
+      "numberValueMin": 1,
+      "numberValueMax": 60,
+      "referralPercent": 100,
+      "storeId": 1
   }
 }
 
