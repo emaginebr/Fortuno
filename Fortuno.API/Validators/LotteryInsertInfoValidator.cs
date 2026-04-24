@@ -23,24 +23,28 @@ public class LotteryInsertInfoValidator : AbstractValidator<LotteryInsertInfo>
         RuleFor(x => x.NumberValueMax).GreaterThanOrEqualTo(0);
         RuleFor(x => x.ReferralPercent).InclusiveBetween(0f, 100f);
 
-        RuleFor(x => x).Must(HaveValidMinMax)
-            .WithMessage("NumberValueMin deve ser menor ou igual a NumberValueMax.");
-
         RuleFor(x => x).Must(HaveConsistentTicketMinMax)
             .WithMessage("Quando Ticket Max > 0, deve ser >= Ticket Min.");
 
-        RuleFor(x => x).Must(HaveValidComposedRange)
-            .WithMessage("Tipo composto exige valor mínimo e máximo entre 0 e 99.");
-    }
+        // Int64: TicketNumIni/End definem a faixa dos números. NumberValueMin/Max é ignorado.
+        RuleFor(x => x).Must(HaveValidInt64Range)
+            .When(x => x.NumberType == NumberTypeDto.Int64)
+            .WithMessage("Para NumberType Int64, TicketNumEnd deve ser maior ou igual a TicketNumIni e maior que zero.");
 
-    private static bool HaveValidMinMax(LotteryInsertInfo x) => x.NumberValueMin <= x.NumberValueMax;
+        // Composed: NumberValueMin/Max ∈ [0, 99] e Min ≤ Max. TicketNumIni/End é ignorado.
+        RuleFor(x => x).Must(HaveValidComposedRange)
+            .When(x => x.NumberType != NumberTypeDto.Int64)
+            .WithMessage("Para tipos compostos, NumberValueMin/Max deve estar em [0..99] e Min ≤ Max.");
+    }
 
     private static bool HaveConsistentTicketMinMax(LotteryInsertInfo x)
         => x.TicketMax == 0 || x.TicketMax >= x.TicketMin;
 
+    private static bool HaveValidInt64Range(LotteryInsertInfo x)
+        => x.TicketNumEnd > 0 && x.TicketNumEnd >= x.TicketNumIni;
+
     private static bool HaveValidComposedRange(LotteryInsertInfo x)
-    {
-        if (x.NumberType == NumberTypeDto.Int64) return true;
-        return x.NumberValueMin is >= 0 and <= 99 && x.NumberValueMax is >= 0 and <= 99;
-    }
+        => x.NumberValueMin is >= 0 and <= 99
+            && x.NumberValueMax is >= 0 and <= 99
+            && x.NumberValueMin <= x.NumberValueMax;
 }

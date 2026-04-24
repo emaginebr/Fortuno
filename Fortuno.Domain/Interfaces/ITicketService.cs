@@ -10,4 +10,6 @@ public interface ITicketService
 
     Task<TicketQRCodeInfo> CreateQRCodeAsync(long currentUserId, TicketOrderRequest request);
     Task<TicketQRCodeStatusInfo> CheckQRCodeStatusAsync(long invoiceId);
+
+    Task<NumberReservationResult> ReserveNumberAsync(long currentUserId, NumberReservationRequest request);
 }

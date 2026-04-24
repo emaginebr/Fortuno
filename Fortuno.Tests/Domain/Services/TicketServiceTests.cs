@@ -3,6 +3,7 @@ using Fortuno.Domain.Enums;
 using Fortuno.Domain.Interfaces;
 using Fortuno.Domain.Models;
 using Fortuno.Domain.Services;
+using Fortuno.DTO.Enums;
 using Fortuno.DTO.NAuth;
 using Fortuno.DTO.ProxyPay;
 using Fortuno.DTO.Ticket;
@@ -27,6 +28,20 @@ public class TicketServiceTests
     private readonly Mock<IProxyPayAppService> _proxyPay = new();
     private readonly Mock<INAuthAppService> _nauth = new();
 
+    public TicketServiceTests()
+    {
+        // Default TryParse/Format/IsValid mirroring the real NumberCompositionService
+        // for Int64 — composed tests set up explicitly quando necessário.
+        _numbers.Setup(n => n.TryParse(NumberType.Int64, It.IsAny<string>(), out It.Ref<long>.IsAny))
+            .Returns(new TryParseLongHandler((NumberType _, string s, out long v) => long.TryParse(s, out v)));
+        _numbers.Setup(n => n.Format(NumberType.Int64, It.IsAny<long>()))
+            .Returns((NumberType _, long v) => v.ToString());
+        _numbers.Setup(n => n.IsValid(NumberType.Int64, It.IsAny<long>(), It.IsAny<int>(), It.IsAny<int>()))
+            .Returns((NumberType _, long v, int min, int max) => v >= min && v <= max);
+    }
+
+    private delegate bool TryParseLongHandler(NumberType type, string input, out long value);
+
     private TicketService CreateSut() => new(
         _ticketRepo.Object,
         _lotteryRepo.Object,
@@ -47,7 +62,7 @@ public class TicketServiceTests
         {
             new() { TicketId = 1, UserId = 42, LotteryId = 5, TicketNumber = 10, CreatedAt = DateTime.UtcNow }
         };
-        _ticketRepo.Setup(r => r.SearchByUserAsync(42, null, null, null, null, null, 1, 20))
+        _ticketRepo.Setup(r => r.SearchByUserAsync(42, null, null, null, null, 1, 20))
             .ReturnsAsync((tickets, 1L));
 
         var sut = CreateSut();
@@ -59,25 +74,40 @@ public class TicketServiceTests
     }
 
     [Fact]
-    public async Task ListForUserAsync_ShouldPassFiltersToRepository()
+    public async Task ListForUserAsync_ShouldNormalizeComposedNumberFilter()
     {
-        _ticketRepo.Setup(r => r.SearchByUserAsync(42, 3L, 7L, "05-11-28-39-60", null, null, 2, 50))
+        // Entrada "60-39-05-28-11" deve ser normalizada para "05-11-28-39-60"
+        // antes de ser enviada ao repositório (match contra ticket_value).
+        _ticketRepo.Setup(r => r.SearchByUserAsync(42, 3L, "05-11-28-39-60", null, null, 2, 50))
             .ReturnsAsync((new List<Ticket>(), 0L));
 
         var sut = CreateSut();
         var result = await sut.ListForUserAsync(42, new TicketSearchQuery
         {
             LotteryId = 3,
-            Number = 7,
-            TicketValue = "05-11-28-39-60",
+            Number = "60-39-05-28-11",
             Page = 2,
             PageSize = 50
         });
 
         result.Items.Should().BeEmpty();
-        result.Page.Should().Be(2);
-        result.PageSize.Should().Be(50);
-        _ticketRepo.Verify(r => r.SearchByUserAsync(42, 3L, 7L, "05-11-28-39-60", null, null, 2, 50), Times.Once);
+        _ticketRepo.Verify(r => r.SearchByUserAsync(42, 3L, "05-11-28-39-60", null, null, 2, 50), Times.Once);
+    }
+
+    [Fact]
+    public async Task ListForUserAsync_ShouldPassInt64NumberFilter()
+    {
+        _ticketRepo.Setup(r => r.SearchByUserAsync(42, 3L, "42", null, null, 1, 20))
+            .ReturnsAsync((new List<Ticket>(), 0L));
+
+        var sut = CreateSut();
+        await sut.ListForUserAsync(42, new TicketSearchQuery
+        {
+            LotteryId = 3,
+            Number = "42"
+        });
+
+        _ticketRepo.Verify(r => r.SearchByUserAsync(42, 3L, "42", null, null, 1, 20), Times.Once);
     }
 
     [Fact]
@@ -243,5 +273,131 @@ public class TicketServiceTests
         emitted.Should().HaveCount(3); // ainda 3 — não duplicou
         _ticketRepo.Verify(r => r.InsertBatchAsync(It.IsAny<IEnumerable<Ticket>>()), Times.Once);
         _orderRepo.Verify(r => r.TryMarkPaidAsync(1), Times.Once);
+    }
+
+    // ---------- ReserveNumberAsync ----------
+
+    private static Lottery OpenInt64Lottery() => new()
+    {
+        LotteryId = 1, StoreId = 99, StoreClientId = "c1", Status = LotteryStatus.Open,
+        TicketPrice = 1m, NumberType = NumberType.Int64,
+        NumberValueMin = 1, NumberValueMax = 1000,
+        TicketNumIni = 1, TicketNumEnd = 1000
+    };
+
+    [Fact]
+    public async Task ReserveNumberAsync_ShouldReturnReserved_WhenAvailable()
+    {
+        _lotteryRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(OpenInt64Lottery());
+        _ticketRepo.Setup(r => r.GetByLotteryAndNumberAsync(1, 42)).ReturnsAsync((Ticket?)null);
+        _reservationRepo.Setup(r => r.IsNumberReservedAsync(1, 42)).ReturnsAsync(false);
+        _reservationRepo.Setup(r => r.InsertBatchAsync(It.IsAny<IEnumerable<NumberReservation>>()))
+            .ReturnsAsync((IEnumerable<NumberReservation> list) => list.ToList());
+
+        var sut = CreateSut();
+        var result = await sut.ReserveNumberAsync(77, new NumberReservationRequest
+        {
+            LotteryId = 1,
+            TicketNumber = "42"
+        });
+
+        result.Success.Should().BeTrue();
+        result.Status.Should().Be(NumberReservationStatusDto.Reserved);
+        result.TicketNumber.Should().Be("42");
+        result.ExpiresAt.Should().NotBeNull();
+        result.ExpiresAt!.Value.Should().BeCloseTo(DateTime.UtcNow.AddMinutes(5), TimeSpan.FromSeconds(5));
+
+        _reservationRepo.Verify(r => r.InsertBatchAsync(
+            It.Is<IEnumerable<NumberReservation>>(list => list.Single().TicketNumber == 42 && list.Single().UserId == 77)),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ReserveNumberAsync_ShouldReturnAlreadyPurchased_WhenNumberSold()
+    {
+        _lotteryRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(OpenInt64Lottery());
+        _ticketRepo.Setup(r => r.GetByLotteryAndNumberAsync(1, 42))
+            .ReturnsAsync(new Ticket { TicketId = 10, LotteryId = 1, TicketNumber = 42, UserId = 55 });
+
+        var sut = CreateSut();
+        var result = await sut.ReserveNumberAsync(77, new NumberReservationRequest
+        {
+            LotteryId = 1,
+            TicketNumber = "42"
+        });
+
+        result.Success.Should().BeFalse();
+        result.Status.Should().Be(NumberReservationStatusDto.AlreadyPurchased);
+        result.Message.Should().Contain("já foi comprado");
+        _reservationRepo.Verify(r => r.InsertBatchAsync(It.IsAny<IEnumerable<NumberReservation>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ReserveNumberAsync_ShouldReturnAlreadyReserved_WhenReservationActive()
+    {
+        _lotteryRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(OpenInt64Lottery());
+        _ticketRepo.Setup(r => r.GetByLotteryAndNumberAsync(1, 42)).ReturnsAsync((Ticket?)null);
+        _reservationRepo.Setup(r => r.IsNumberReservedAsync(1, 42)).ReturnsAsync(true);
+
+        var sut = CreateSut();
+        var result = await sut.ReserveNumberAsync(77, new NumberReservationRequest
+        {
+            LotteryId = 1,
+            TicketNumber = "42"
+        });
+
+        result.Success.Should().BeFalse();
+        result.Status.Should().Be(NumberReservationStatusDto.AlreadyReserved);
+        result.Message.Should().Contain("já está reservado");
+        _reservationRepo.Verify(r => r.InsertBatchAsync(It.IsAny<IEnumerable<NumberReservation>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ReserveNumberAsync_ShouldThrow_WhenLotteryNotFound()
+    {
+        _lotteryRepo.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((Lottery?)null);
+
+        var sut = CreateSut();
+        Func<Task> act = () => sut.ReserveNumberAsync(77, new NumberReservationRequest
+        {
+            LotteryId = 99,
+            TicketNumber = "42"
+        });
+
+        await act.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task ReserveNumberAsync_ShouldThrow_WhenLotteryNotOpen()
+    {
+        var draft = OpenInt64Lottery();
+        draft.Status = LotteryStatus.Draft;
+        _lotteryRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(draft);
+
+        var sut = CreateSut();
+        Func<Task> act = () => sut.ReserveNumberAsync(77, new NumberReservationRequest
+        {
+            LotteryId = 1,
+            TicketNumber = "42"
+        });
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Open*");
+    }
+
+    [Fact]
+    public async Task ReserveNumberAsync_ShouldThrow_WhenNumberOutOfRange()
+    {
+        _lotteryRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(OpenInt64Lottery());
+
+        var sut = CreateSut();
+        Func<Task> act = () => sut.ReserveNumberAsync(77, new NumberReservationRequest
+        {
+            LotteryId = 1,
+            TicketNumber = "9999"
+        });
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*fora da faixa*");
     }
 }

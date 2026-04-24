@@ -53,11 +53,15 @@ public class TicketService : ITicketService
 
     public async Task<PagedResult<TicketInfo>> ListForUserAsync(long userId, TicketSearchQuery query)
     {
+        // Normaliza `number`: Int64 → decimal direto; Composed → ordena componentes
+        // ascendente e zero-pad cada um para casar com `ticket_value` armazenado.
+        // Matching vai sempre contra `ticket_value` (coluna string canônica).
+        var normalized = NormalizeNumberFilter(query.Number);
+
         var (items, total) = await _tickets.SearchByUserAsync(
             userId,
             query.LotteryId,
-            query.Number,
-            query.TicketValue,
+            normalized,
             query.FromDate,
             query.ToDate,
             query.Page,
@@ -70,6 +74,29 @@ public class TicketService : ITicketService
             PageSize = query.PageSize < 1 ? 20 : query.PageSize,
             TotalCount = total
         };
+    }
+
+    // Normaliza filtro textual para a forma canônica armazenada em `ticket_value`.
+    // "42"            → "42"
+    // "60-39-05-28-11"→ "05-11-28-39-60" (ordenado, zero-padded 2 dígitos)
+    // Se o input for inválido, retorna a própria string (match vai falhar mas
+    // não propaga erro de validação — é filtro opcional).
+    private static string? NormalizeNumberFilter(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+        var text = input.Trim();
+        if (!text.Contains('-')) return text;
+
+        var parts = text.Split('-');
+        var parsed = new int[parts.Length];
+        for (int i = 0; i < parts.Length; i++)
+        {
+            if (!int.TryParse(parts[i], out var c) || c < 0 || c > 99)
+                return text; // deixa passar — match falhará no banco
+            parsed[i] = c;
+        }
+        Array.Sort(parsed);
+        return string.Join("-", parsed.Select(c => c.ToString("D2")));
     }
 
     public async Task<TicketInfo?> GetByIdAsync(long ticketId, long currentUserId)
@@ -124,14 +151,18 @@ public class TicketService : ITicketService
 
         var mode = (TicketOrderMode)request.Mode;
 
+        List<long>? pickedLongs = null;
         if (mode == TicketOrderMode.UserPicks)
         {
             if (request.PickedNumbers is null || request.PickedNumbers.Count != request.Quantity)
                 throw new InvalidOperationException("Em UserPicks, pickedNumbers deve ter a mesma quantidade do pedido.");
-            await ValidatePickedNumbersAsync(lottery, request.PickedNumbers);
+            pickedLongs = ParseAndValidatePickedNumbers(lottery, request.PickedNumbers);
+            if (!await _reservationRepo.AreNumbersAvailableAsync(lottery.LotteryId, pickedLongs))
+                throw new InvalidOperationException("Um ou mais números já foram reservados ou vendidos.");
+
             await _reservationRepo.ExpireByUserAndLotteryAsync(currentUserId, lottery.LotteryId);
             var expires = DateTime.UtcNow.AddMinutes(20);
-            var reservations = request.PickedNumbers.Select(n => new NumberReservation
+            var reservations = pickedLongs.Select(n => new NumberReservation
             {
                 LotteryId = lottery.LotteryId,
                 UserId = currentUserId,
@@ -198,9 +229,9 @@ public class TicketService : ITicketService
         };
         await _orderRepo.InsertAsync(order);
 
-        if (mode == TicketOrderMode.UserPicks && request.PickedNumbers is { Count: > 0 })
+        if (mode == TicketOrderMode.UserPicks && pickedLongs is { Count: > 0 })
         {
-            var numberRows = request.PickedNumbers.Select(n => new TicketOrderNumber
+            var numberRows = pickedLongs.Select(n => new TicketOrderNumber
             {
                 TicketOrderId = order.TicketOrderId,
                 TicketNumber = n
@@ -216,6 +247,90 @@ public class TicketService : ITicketService
             BrCodeBase64 = qr.BrCodeBase64,
             ExpiredAt = qr.ExpiredAt
         };
+    }
+
+    // ---------- POST /tickets/reserve-number ----------
+
+    public async Task<NumberReservationResult> ReserveNumberAsync(long currentUserId, NumberReservationRequest request)
+    {
+        var lottery = await _lotteryRepo.GetByIdAsync(request.LotteryId)
+            ?? throw new KeyNotFoundException($"Lottery {request.LotteryId} não encontrada.");
+
+        if (lottery.Status != LotteryStatus.Open)
+            throw new InvalidOperationException("Reserva disponível apenas em Lottery Open.");
+
+        // Parse + validação de faixa/composição (string → long canônico).
+        if (!_numbers.TryParse(lottery.NumberType, request.TicketNumber, out var numberValue))
+            throw new InvalidOperationException(
+                $"Número '{request.TicketNumber}' em formato inválido para tipo {lottery.NumberType}.");
+
+        ValidateNumberRange(lottery, numberValue, request.TicketNumber);
+
+        var displayNumber = _numbers.Format(lottery.NumberType, numberValue);
+
+        var sold = await _tickets.GetByLotteryAndNumberAsync(lottery.LotteryId, numberValue);
+        if (sold is not null)
+        {
+            return new NumberReservationResult
+            {
+                Success = false,
+                Status = NumberReservationStatusDto.AlreadyPurchased,
+                Message = $"Número {displayNumber} já foi comprado.",
+                LotteryId = lottery.LotteryId,
+                TicketNumber = displayNumber
+            };
+        }
+
+        if (await _reservationRepo.IsNumberReservedAsync(lottery.LotteryId, numberValue))
+        {
+            return new NumberReservationResult
+            {
+                Success = false,
+                Status = NumberReservationStatusDto.AlreadyReserved,
+                Message = $"Número {displayNumber} já está reservado.",
+                LotteryId = lottery.LotteryId,
+                TicketNumber = displayNumber
+            };
+        }
+
+        var expiresAt = DateTime.UtcNow.AddMinutes(5);
+        await _reservationRepo.InsertBatchAsync(new[]
+        {
+            new NumberReservation
+            {
+                LotteryId = lottery.LotteryId,
+                UserId = currentUserId,
+                TicketNumber = numberValue,
+                ExpiresAt = expiresAt
+            }
+        });
+
+        return new NumberReservationResult
+        {
+            Success = true,
+            Status = NumberReservationStatusDto.Reserved,
+            Message = $"Número {displayNumber} reservado com sucesso por 5 minutos.",
+            LotteryId = lottery.LotteryId,
+            TicketNumber = displayNumber,
+            ExpiresAt = expiresAt
+        };
+    }
+
+    // Int64: faixa = [TicketNumIni, TicketNumEnd]. Composed: cada componente em [NumberValueMin, NumberValueMax].
+    private void ValidateNumberRange(Lottery lottery, long numberValue, string displayInput)
+    {
+        if (lottery.NumberType == NumberType.Int64)
+        {
+            if (numberValue < lottery.TicketNumIni || numberValue > lottery.TicketNumEnd)
+                throw new InvalidOperationException(
+                    $"Número {displayInput} fora da faixa [{lottery.TicketNumIni}..{lottery.TicketNumEnd}].");
+        }
+        else
+        {
+            if (!_numbers.IsValid(lottery.NumberType, numberValue, lottery.NumberValueMin, lottery.NumberValueMax))
+                throw new InvalidOperationException(
+                    $"Número {displayInput}: componentes fora da faixa [{lottery.NumberValueMin}..{lottery.NumberValueMax}].");
+        }
     }
 
     // ---------- GET /tickets/qrcode/{invoiceId}/status ----------
@@ -390,25 +505,15 @@ public class TicketService : ITicketService
             ? (TicketOrderStatus)raw.Value
             : null;
 
+    // Int64: pool = [TicketNumIni, TicketNumEnd]. Composed: pool = combinatório [NumberValueMin, NumberValueMax] nos N componentes.
     private async Task<PoolStats> ComputePoolStatsAsync(Lottery lottery)
     {
         long poolTotal;
         if (lottery.NumberType == NumberType.Int64)
-        {
-            poolTotal = _numbers.CountPossibilities(
-                NumberType.Int64, lottery.NumberValueMin, lottery.NumberValueMax);
-        }
-        else if (IsTicketRangeUnbounded(lottery))
-        {
-            // Sem limite explícito de TicketNum: pool é o combinatório total
-            // dos componentes em [NumberValueMin, NumberValueMax].
+            poolTotal = Math.Max(0L, lottery.TicketNumEnd - lottery.TicketNumIni + 1);
+        else
             poolTotal = _numbers.CountPossibilities(
                 lottery.NumberType, lottery.NumberValueMin, lottery.NumberValueMax);
-        }
-        else
-        {
-            poolTotal = Math.Max(0L, lottery.TicketNumEnd - lottery.TicketNumIni + 1);
-        }
 
         var sold = await _tickets.CountSoldAsync(lottery.LotteryId);
         var reserved = (await _reservationRepo.ListActiveReservedNumbersAsync(lottery.LotteryId)).Count;
@@ -416,22 +521,12 @@ public class TicketService : ITicketService
         return new PoolStats(poolTotal, sold, reserved, available);
     }
 
-    // TicketNumEnd <= 0 (ou < ini) é interpretado como "sem limite explícito"
-    // — a faixa do pool passa a ser determinada apenas por NumberValueMin/Max
-    // para tipos compostos.
-    private static bool IsTicketRangeUnbounded(Lottery lottery) =>
-        lottery.TicketNumEnd <= 0 || lottery.TicketNumEnd < lottery.TicketNumIni;
-
     private static string BuildPoolInsufficientMessage(
         Lottery lottery, int requested, PoolStats pool, string context)
     {
-        string faixa;
-        if (lottery.NumberType == NumberType.Int64)
-            faixa = $"faixa {lottery.NumberValueMin}–{lottery.NumberValueMax}";
-        else if (IsTicketRangeUnbounded(lottery))
-            faixa = $"componentes {lottery.NumberValueMin}–{lottery.NumberValueMax} em {lottery.NumberType} (sem limite explícito de TicketNumEnd)";
-        else
-            faixa = $"faixa {lottery.TicketNumIni}–{lottery.TicketNumEnd} em {lottery.NumberType}";
+        var faixa = lottery.NumberType == NumberType.Int64
+            ? $"faixa {lottery.TicketNumIni}–{lottery.TicketNumEnd}"
+            : $"componentes {lottery.NumberValueMin}–{lottery.NumberValueMax} em {lottery.NumberType}";
         return
             $"Pool de números insuficiente {context}: " +
             $"restam {pool.Available} disponível(is) para compra " +
@@ -441,30 +536,24 @@ public class TicketService : ITicketService
 
     private readonly record struct PoolStats(long PoolTotal, long Sold, int Reserved, long Available);
 
-    private async Task ValidatePickedNumbersAsync(Lottery lottery, IReadOnlyList<long> numbers)
+    // Parse string-format pickedNumbers, valida faixa conforme tipo e retorna os
+    // long canônicos (já ordenados para composed via NumberCompositionService.Parse).
+    private List<long> ParseAndValidatePickedNumbers(Lottery lottery, IReadOnlyList<string> inputs)
     {
-        if (numbers.Distinct().Count() != numbers.Count)
-            throw new InvalidOperationException("Números escolhidos duplicados.");
-
-        foreach (var n in numbers)
+        var parsed = new List<long>(inputs.Count);
+        foreach (var raw in inputs)
         {
-            if (lottery.NumberType == NumberType.Int64)
-            {
-                if (n < lottery.NumberValueMin || n > lottery.NumberValueMax)
-                    throw new InvalidOperationException($"Número {n} fora da faixa permitida.");
-            }
-            else
-            {
-                var bounded = !IsTicketRangeUnbounded(lottery);
-                if (bounded && (n < lottery.TicketNumIni || n > lottery.TicketNumEnd))
-                    throw new InvalidOperationException($"Número {n} fora da faixa de tickets.");
-                if (!_numbers.IsValid(lottery.NumberType, n, lottery.NumberValueMin, lottery.NumberValueMax))
-                    throw new InvalidOperationException($"Número {n} viola a composição de componentes.");
-            }
+            if (!_numbers.TryParse(lottery.NumberType, raw, out var value))
+                throw new InvalidOperationException(
+                    $"Número '{raw}' em formato inválido para tipo {lottery.NumberType}.");
+            ValidateNumberRange(lottery, value, raw);
+            parsed.Add(value);
         }
 
-        if (!await _reservationRepo.AreNumbersAvailableAsync(lottery.LotteryId, numbers))
-            throw new InvalidOperationException("Um ou mais números já foram reservados ou vendidos.");
+        if (parsed.Distinct().Count() != parsed.Count)
+            throw new InvalidOperationException("Números escolhidos duplicados.");
+
+        return parsed;
     }
 
     private async Task<List<long>> DrawRandomAvailableNumbersAsync(Lottery lottery, int quantity)
@@ -477,17 +566,17 @@ public class TicketService : ITicketService
 
         if (lottery.NumberType == NumberType.Int64)
         {
-            var min = lottery.NumberValueMin;
-            var max = lottery.NumberValueMax;
+            // Int64: faixa = [TicketNumIni, TicketNumEnd].
+            var min = lottery.TicketNumIni;
+            var max = lottery.TicketNumEnd;
             var poolSize = max - min + 1;
             if (poolSize <= 0) return picks;
 
             if (poolSize <= 1_000_000)
             {
-                var pool = Enumerable.Range(min, poolSize)
-                    .Select(v => (long)v)
-                    .Where(v => !sold.Contains(v) && !reserved.Contains(v))
-                    .ToList();
+                var pool = new List<long>((int)poolSize);
+                for (long v = min; v <= max; v++)
+                    if (!sold.Contains(v) && !reserved.Contains(v)) pool.Add(v);
                 Shuffle(pool, rng);
                 picks = pool.Take(quantity).ToList();
             }
@@ -496,7 +585,7 @@ public class TicketService : ITicketService
                 int attempts = 0;
                 while (picks.Count < quantity && attempts < quantity * 20)
                 {
-                    var v = rng.NextInt64(min, (long)max + 1);
+                    var v = rng.NextInt64(min, max + 1);
                     if (sold.Contains(v) || reserved.Contains(v) || picks.Contains(v)) { attempts++; continue; }
                     picks.Add(v);
                 }
@@ -504,41 +593,25 @@ public class TicketService : ITicketService
         }
         else
         {
-            // Composed types. Respeita TicketNumEnd se > 0; senão usa o pool
-            // combinatório completo via NumberValueMin/Max por componente.
-            var unbounded = IsTicketRangeUnbounded(lottery);
-            var poolSize = unbounded
-                ? _numbers.CountPossibilities(lottery.NumberType, lottery.NumberValueMin, lottery.NumberValueMax)
-                : Math.Max(0L, lottery.TicketNumEnd - lottery.TicketNumIni + 1);
+            // Composed: pool = combinatório de N componentes em [NumberValueMin, NumberValueMax].
+            var poolSize = _numbers.CountPossibilities(
+                lottery.NumberType, lottery.NumberValueMin, lottery.NumberValueMax);
 
             if (poolSize <= 0) return picks;
 
             if (poolSize <= 1_000_000)
             {
                 var pool = new List<long>();
-                if (unbounded)
+                foreach (var v in _numbers.EnumerateAll(lottery.NumberType, lottery.NumberValueMin, lottery.NumberValueMax))
                 {
-                    foreach (var v in _numbers.EnumerateAll(lottery.NumberType, lottery.NumberValueMin, lottery.NumberValueMax))
-                    {
-                        if (sold.Contains(v) || reserved.Contains(v)) continue;
-                        pool.Add(v);
-                    }
-                }
-                else
-                {
-                    for (long v = lottery.TicketNumIni; v <= lottery.TicketNumEnd; v++)
-                    {
-                        if (sold.Contains(v) || reserved.Contains(v)) continue;
-                        if (_numbers.IsValid(lottery.NumberType, v, lottery.NumberValueMin, lottery.NumberValueMax))
-                            pool.Add(v);
-                    }
+                    if (sold.Contains(v) || reserved.Contains(v)) continue;
+                    pool.Add(v);
                 }
                 Shuffle(pool, rng);
                 picks = pool.Take(quantity).ToList();
             }
             else
             {
-                // Pool gigante: sorteia componentes aleatórios e compõe.
                 var n = _numbers.ComponentCount(lottery.NumberType);
                 var cmin = lottery.NumberValueMin;
                 var cmax = lottery.NumberValueMax;
@@ -549,7 +622,6 @@ public class TicketService : ITicketService
                     var components = new int[n];
                     for (int i = 0; i < n; i++) components[i] = rng.Next(cmin, cmax + 1);
                     var v = _numbers.Compose(lottery.NumberType, components);
-                    if (!unbounded && (v < lottery.TicketNumIni || v > lottery.TicketNumEnd)) { attempts++; continue; }
                     if (sold.Contains(v) || reserved.Contains(v) || !picksSet.Add(v)) { attempts++; continue; }
                     picks.Add(v);
                 }

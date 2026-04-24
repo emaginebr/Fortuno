@@ -18,7 +18,6 @@ public class TicketRepository : Repository<Ticket>, ITicketRepository<Ticket>
     public async Task<(List<Ticket> Items, long TotalCount)> SearchByUserAsync(
         long userId,
         long? lotteryId = null,
-        long? ticketNumber = null,
         string? ticketValue = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,
@@ -31,7 +30,6 @@ public class TicketRepository : Repository<Ticket>, ITicketRepository<Ticket>
 
         var q = _context.Tickets.AsNoTracking().Include(x => x.Lottery).Where(x => x.UserId == userId);
         if (lotteryId.HasValue) q = q.Where(x => x.LotteryId == lotteryId.Value);
-        if (ticketNumber.HasValue) q = q.Where(x => x.TicketNumber == ticketNumber.Value);
         if (!string.IsNullOrWhiteSpace(ticketValue)) q = q.Where(x => x.TicketValue == ticketValue);
         if (fromDate.HasValue) q = q.Where(x => x.CreatedAt >= fromDate.Value);
         if (toDate.HasValue) q = q.Where(x => x.CreatedAt <= toDate.Value);

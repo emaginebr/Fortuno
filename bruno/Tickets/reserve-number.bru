@@ -1,0 +1,26 @@
+meta {
+  name: Reserve Number
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/tickets/reserve-number
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "lotteryId": {{lotteryId}},
+    "ticketNumber": "42"
+  }
+}

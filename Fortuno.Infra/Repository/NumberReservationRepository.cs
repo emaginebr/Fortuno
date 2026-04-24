@@ -26,6 +26,15 @@ public class NumberReservationRepository : Repository<NumberReservation>, INumbe
             .ToListAsync();
     }
 
+    public async Task<bool> IsNumberReservedAsync(long lotteryId, long ticketNumber)
+    {
+        var now = DateTime.UtcNow;
+        return await _context.NumberReservations.AsNoTracking()
+            .AnyAsync(x => x.LotteryId == lotteryId
+                && x.TicketNumber == ticketNumber
+                && x.ExpiresAt > now);
+    }
+
     public async Task<bool> AreNumbersAvailableAsync(long lotteryId, IEnumerable<long> numbers)
     {
         var now = DateTime.UtcNow;

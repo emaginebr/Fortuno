@@ -11,4 +11,6 @@ public interface INumberCompositionService
     long CountPossibilities(NumberType type, int min, int max);
     IEnumerable<long> EnumerateAll(NumberType type, int min, int max);
     string Format(NumberType type, long composedValue);
+    bool TryParse(NumberType type, string input, out long value);
+    long Parse(NumberType type, string input);
 }

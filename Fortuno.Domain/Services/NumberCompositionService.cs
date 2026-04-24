@@ -98,6 +98,45 @@ public class NumberCompositionService : INumberCompositionService
         return string.Join("-", components.OrderBy(c => c).Select(c => c.ToString("D2")));
     }
 
+    /// <summary>
+    /// Converte representação textual (inversa de <see cref="Format"/>) em valor numérico.
+    /// Int64 → parse decimal direto. Composed → aceita componentes separados por "-"
+    /// (ex.: "05-11-28-39-60" ou "60-39-5-28-11"); ordena ascendente antes de compor.
+    /// </summary>
+    public bool TryParse(NumberType type, string input, out long value)
+    {
+        value = 0;
+        if (string.IsNullOrWhiteSpace(input)) return false;
+        var text = input.Trim();
+
+        if (type == NumberType.Int64)
+            return long.TryParse(text, out value);
+
+        var parts = text.Split('-');
+        if (parts.Length != ComponentCount(type)) return false;
+
+        var components = new int[parts.Length];
+        for (int i = 0; i < parts.Length; i++)
+        {
+            if (!int.TryParse(parts[i], out var c)) return false;
+            if (c < 0 || c > 99) return false;
+            components[i] = c;
+        }
+
+        Array.Sort(components);
+        try { value = Compose(type, components); }
+        catch { return false; }
+        return true;
+    }
+
+    public long Parse(NumberType type, string input)
+    {
+        if (!TryParse(type, input, out var value))
+            throw new ArgumentException(
+                $"Não foi possível converter '{input}' para número do tipo {type}.", nameof(input));
+        return value;
+    }
+
     public IEnumerable<long> EnumerateAll(NumberType type, int min, int max)
     {
         if (type == NumberType.Int64)

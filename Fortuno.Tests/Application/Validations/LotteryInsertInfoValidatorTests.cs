@@ -78,11 +78,14 @@ public class LotteryInsertInfoValidatorTests
     }
 
     [Fact]
-    public void Should_Fail_When_NumberValueMinGreaterThanMax()
+    public void Should_Fail_WhenComposedHasMinGreaterThanMax()
     {
-        var dto = Valid(); dto.NumberValueMin = 50; dto.NumberValueMax = 10;
+        var dto = Valid();
+        dto.NumberType = NumberTypeDto.Composed3;
+        dto.NumberValueMin = 50;
+        dto.NumberValueMax = 10;
         var result = _validator.TestValidate(dto);
-        result.Errors.Should().Contain(e => e.ErrorMessage.Contains("NumberValueMin"));
+        result.Errors.Should().Contain(e => e.ErrorMessage.Contains("NumberValueMin") || e.ErrorMessage.Contains("Min ≤ Max"));
     }
 
     [Fact]
@@ -93,6 +96,38 @@ public class LotteryInsertInfoValidatorTests
         dto.NumberValueMin = 0;
         dto.NumberValueMax = 150;
         var result = _validator.TestValidate(dto);
-        result.Errors.Should().Contain(e => e.ErrorMessage.Contains("composto") || e.ErrorMessage.Contains("0 e 99"));
+        result.Errors.Should().Contain(e => e.ErrorMessage.Contains("composto") || e.ErrorMessage.Contains("0..99"));
+    }
+
+    [Fact]
+    public void Should_Fail_When_Int64HasTicketNumEndZero()
+    {
+        var dto = Valid();
+        dto.TicketNumIni = 0;
+        dto.TicketNumEnd = 0;
+        var result = _validator.TestValidate(dto);
+        result.Errors.Should().Contain(e => e.ErrorMessage.Contains("Int64") || e.ErrorMessage.Contains("TicketNumEnd"));
+    }
+
+    [Fact]
+    public void Should_Fail_When_Int64HasEndLessThanIni()
+    {
+        var dto = Valid();
+        dto.TicketNumIni = 100;
+        dto.TicketNumEnd = 50;
+        var result = _validator.TestValidate(dto);
+        result.Errors.Should().Contain(e => e.ErrorMessage.Contains("Int64") || e.ErrorMessage.Contains("TicketNumEnd"));
+    }
+
+    [Fact]
+    public void Should_Pass_When_Composed_TicketNumIgnored()
+    {
+        var dto = Valid();
+        dto.NumberType = NumberTypeDto.Composed3;
+        dto.NumberValueMin = 0;
+        dto.NumberValueMax = 99;
+        dto.TicketNumIni = 0;     // ignorado em Composed
+        dto.TicketNumEnd = 0;     // ignorado em Composed
+        _validator.TestValidate(dto).ShouldNotHaveAnyValidationErrors();
     }
 }

@@ -5,7 +5,6 @@ public interface ITicketRepository<TModel> : IRepository<TModel> where TModel : 
     Task<(List<TModel> Items, long TotalCount)> SearchByUserAsync(
         long userId,
         long? lotteryId = null,
-        long? ticketNumber = null,
         string? ticketValue = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,

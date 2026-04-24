@@ -7,12 +7,13 @@ public class TicketSearchQuery
     [JsonPropertyName("lotteryId")]
     public long? LotteryId { get; set; }
 
+    /// <summary>
+    /// Filtro por número do ticket em formato texto. Int64 → decimal (ex.: "42").
+    /// Composed → componentes separados por "-" (ex.: "05-11-28-39-60"); a ordem
+    /// é irrelevante — backend normaliza para match exato contra <c>ticket_value</c>.
+    /// </summary>
     [JsonPropertyName("number")]
-    public long? Number { get; set; }
-
-    /// <summary>Filtro por <c>ticket_value</c> (string formatada e ordenada).</summary>
-    [JsonPropertyName("ticketValue")]
-    public string? TicketValue { get; set; }
+    public string? Number { get; set; }
 
     [JsonPropertyName("fromDate")]
     public DateTime? FromDate { get; set; }

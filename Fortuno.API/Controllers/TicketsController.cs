@@ -21,8 +21,7 @@ public class TicketsController : ControllerBase
     [HttpGet("mine")]
     public async Task<IActionResult> Mine(
         [FromQuery] long? lotteryId,
-        [FromQuery] long? number,
-        [FromQuery] string? ticketValue,
+        [FromQuery] string? number,
         [FromQuery] DateTime? fromDate,
         [FromQuery] DateTime? toDate,
         [FromQuery] int page = 1,
@@ -33,7 +32,6 @@ public class TicketsController : ControllerBase
         {
             LotteryId = lotteryId,
             Number = number,
-            TicketValue = ticketValue,
             FromDate = fromDate,
             ToDate = toDate,
             Page = page,
@@ -59,6 +57,18 @@ public class TicketsController : ControllerBase
         }
         catch (KeyNotFoundException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, ApiResponse.Fail(ex.Message)); }
+        catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
+    }
+
+    [HttpPost("reserve-number")]
+    public async Task<IActionResult> ReserveNumber([FromBody] NumberReservationRequest request)
+    {
+        try
+        {
+            var result = await _tickets.ReserveNumberAsync(User.GetCurrentUserId(), request);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(ApiResponse.Fail(ex.Message)); }
     }
 

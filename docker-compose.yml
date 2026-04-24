@@ -12,7 +12,7 @@ services:
       ConnectionStrings__FortunoContext: ${FORTUNO_CONNECTION_STRING}
       NAuth__ApiUrl: ${NAUTH_API_URL}
       NAuth__TenantId: ${NAUTH_TENANT_ID}
-      NAuth__JwtSecret: ${FORTUNO_JWT_SECRET}
+      NAuth__JwtSecret: ${NAUTH_JWT_SECRET}
       NAuth__BucketName: ${NAUTH_BUCKET_NAME}
       ProxyPay__ApiUrl: ${PROXYPAY_API_URL}
       ProxyPay__TenantId: ${PROXYPAY_TENANT_ID}
