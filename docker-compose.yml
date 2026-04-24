@@ -9,14 +9,13 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
       ASPNETCORE_URLS: http://+:80
-      ConnectionStrings__FortunoContext: ${CONNECTION_STRING}
+      ConnectionStrings__FortunoContext: ${FORTUNO_CONNECTION_STRING}
       NAuth__ApiUrl: ${NAUTH_API_URL}
       NAuth__TenantId: ${NAUTH_TENANT_ID}
       NAuth__JwtSecret: ${NAUTH_JWT_SECRET}
       NAuth__BucketName: ${NAUTH_BUCKET_NAME}
       ProxyPay__ApiUrl: ${PROXYPAY_API_URL}
       ProxyPay__TenantId: ${PROXYPAY_TENANT_ID}
-      ProxyPay__WebhookSecret: ${PROXYPAY_WEBHOOK_SECRET}
       ZTools__ApiUrl: ${ZTOOLS_API_URL}
       ZTools__S3BucketName: ${ZTOOLS_S3_BUCKET_NAME}
       Cors__AllowAnyOrigin: ${CORS_ALLOW_ANY_ORIGIN}

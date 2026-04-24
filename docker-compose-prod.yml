@@ -10,9 +10,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:80
-      ConnectionStrings__FortunoContext: ${CONNECTION_STRING}
+      ConnectionStrings__FortunoContext: ${FORTUNO_CONNECTION_STRING}
       NAuth__JwtSecret: ${NAUTH_JWT_SECRET}
-      ProxyPay__WebhookSecret: ${PROXYPAY_WEBHOOK_SECRET}
     networks:
       - emagine-network
 

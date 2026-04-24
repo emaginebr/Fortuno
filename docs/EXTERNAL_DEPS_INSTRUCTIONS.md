@@ -64,17 +64,7 @@ ProxyPay:
 
 **Sem isso em produção, o Fortuno não pode ir ao ar.**
 
-### 2. Webhook `invoice.paid` assinado com HMAC-SHA256
-
-**Contexto**: o Fortuno expõe `POST /webhooks/proxypay/invoice-paid`
-que valida o header `X-ProxyPay-Signature` contra o corpo bruto
-(`sha256=<hex-hmac>`), usando segredo compartilhado em
-`ProxyPaySettings:WebhookSecret`.
-
-**Solicitação**: o ProxyPay deve enviar esse header em todas as
-notificações. Segredo distribuído manualmente (ou via cofre/KMS).
-
-### 3. `GET /stores/{id}` incluindo `ownerUserId`
+### 2. `GET /stores/{id}` incluindo `ownerUserId`
 
 **Contexto**: FR-045a do Fortuno restringe todas as escritas
 (Lottery/Image/Combo/Raffle/Award/Winner, estorno, comissões) ao
@@ -89,7 +79,7 @@ usuário proprietário da Store associada. O Fortuno chama
 `ownerUserId`. Se hoje for apenas `OwnerId` ou outro nome, ajustar (ou
 nos avisar para ajustar o client do lado Fortuno).
 
-### 4. `POST /invoices` aceitando `metadata` arbitrário
+### 3. `POST /invoices` aceitando `metadata` arbitrário
 
 **Contexto**: o Fortuno cria Invoices passando metadata chave-valor que
 volta no webhook para correlacionar a compra:
@@ -126,7 +116,7 @@ A resposta esperada do Fortuno:
 }
 ```
 
-### 5. **Fora do escopo ProxyPay**: estornos não são chamados pelo Fortuno
+### 4. **Fora do escopo ProxyPay**: estornos não são chamados pelo Fortuno
 
 Por decisão de produto (SC-011), o Fortuno **NÃO** chama o ProxyPay para
 estornar tickets. Toda liquidação de estorno/comissão ocorre off-platform
@@ -186,13 +176,13 @@ esteja offline. Confirmar que a saída respeita:
 - [ ] NAuth exposto publicamente com tenant `fortuna` e contrato
       `IUserClient` inalterado.
 - [ ] NAuth expõe `GetByIdsAsync` em lote (ou aceitar degradação).
-- [ ] ProxyPay com tenant `fortuna` e webhook HMAC implementados.
+- [ ] ProxyPay com tenant `fortuna` implementado.
 - [ ] ProxyPay devolve `ownerUserId` em `GET /stores/{id}`.
 - [ ] ProxyPay ecoa `metadata` no webhook `invoice.paid`.
 - [ ] zTools expõe geração de PDF (ou aceitar HTML em vez de PDF
       temporariamente).
 - [ ] Segredos compartilhados distribuídos via cofre:
-      `NAuth:ApiKey`, `ProxyPay:ApiKey`, `ProxyPay:WebhookSecret`,
+      `NAuth:ApiKey`, `ProxyPay:ApiKey`,
       `ZTools:ApiKey`, `ZTools:S3AccessKey`, `ZTools:S3SecretKey`.
 
 ---
