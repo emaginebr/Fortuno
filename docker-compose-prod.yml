@@ -11,7 +11,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:80
       ConnectionStrings__FortunoContext: ${FORTUNO_CONNECTION_STRING}
-      NAuth__JwtSecret: ${NAUTH_JWT_SECRET}
+      NAuth__JwtSecret: ${FORTUNO_JWT_SECRET}
     networks:
       - emagine-network
 

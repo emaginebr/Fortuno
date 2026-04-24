@@ -56,7 +56,7 @@ jobs:
 
             cat > .env.prod <<ENVEOF
             FORTUNO_CONNECTION_STRING=${{ secrets.FORTUNO_CONNECTION_STRING }}
-            NAUTH_JWT_SECRET=${{ secrets.NAUTH_JWT_SECRET }}
+            FORTUNO_JWT_SECRET=${{ secrets.FORTUNO_JWT_SECRET }}
             ENVEOF
 
             sed -i 's/^[[:space:]]*//' .env.prod
@@ -147,8 +147,12 @@ jobs:
               exit 1
             fi
 
-            # Smoke test interno — rota pública sem auth
-            HTTP_STATUS=$(docker exec fortuno-api sh -c 'wget -qO- -S http://localhost:80/lotteries/open 2>&1 | grep -oE "HTTP/[0-9.]+ [0-9]+" | tail -1 | awk "{print \$2}"' || echo "000")
+            # Smoke test via container curl descartável na mesma docker network
+            HTTP_STATUS=$(docker run --rm --network emagine-network curlimages/curl:latest \
+              -s -o /dev/null -w "%{http_code}" \
+              --max-time 10 \
+              http://fortuno-api:80/lotteries/open 2>/dev/null || echo "000")
+
             if [ "$HTTP_STATUS" = "200" ]; then
               echo "Health check passed (HTTP $HTTP_STATUS)"
             else
