@@ -5,6 +5,7 @@ using Fortuno.Domain.Models;
 using Fortuno.Domain.Services;
 using Fortuno.DTO.Enums;
 using Fortuno.DTO.Lottery;
+using Fortuno.DTO.NAuth;
 using Fortuno.DTO.ProxyPay;
 using Fortuno.Infra.Interfaces.AppServices;
 using Fortuno.Infra.Interfaces.Repository;
@@ -23,11 +24,21 @@ public class LotteryServiceTests
     private readonly Mock<IStoreOwnershipGuard> _ownership = new();
     private readonly Mock<INumberCompositionService> _numbers = new();
     private readonly Mock<IProxyPayAppService> _proxyPay = new();
+    private readonly Mock<INAuthAppService> _nauth = new();
 
     public LotteryServiceTests()
     {
-        // Default: ProxyPay devolve uma Store com clientId válido para Create/Publish.
-        // Testes podem sobrescrever via Setup().
+        // Default: ProxyPay devolve uma Store com clientId válido (via EnsureMyStoreAsync).
+        // Mantém GetStoreAsync default para fluxos que ainda usam (Publish backfill).
+        var defaultStore = new ProxyPayStoreInfo
+        {
+            StoreId = 10,
+            OwnerUserId = 42,
+            Name = "QA Store",
+            ClientId = "client-qa"
+        };
+        _proxyPay.Setup(p => p.EnsureMyStoreAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(defaultStore);
         _proxyPay.Setup(p => p.GetStoreAsync(It.IsAny<long>()))
             .ReturnsAsync((long sid) => new ProxyPayStoreInfo
             {
@@ -36,6 +47,16 @@ public class LotteryServiceTests
                 Name = "QA Store",
                 ClientId = "client-qa"
             });
+        _proxyPay.Setup(p => p.GetMyStoreAsync()).ReturnsAsync(defaultStore);
+
+        _nauth.Setup(n => n.GetCurrentAsync()).ReturnsAsync(new NAuthUserInfo
+        {
+            UserId = 42,
+            Name = "QA Owner",
+            Email = "qa@example.com",
+            DocumentId = "12345678900",
+            Phone = "11999999999"
+        });
     }
 
     private LotteryService CreateSut() => new(
@@ -47,11 +68,11 @@ public class LotteryServiceTests
         _slug.Object,
         _ownership.Object,
         _numbers.Object,
-        _proxyPay.Object);
+        _proxyPay.Object,
+        _nauth.Object);
 
-    private static LotteryInsertInfo ValidInsert(long storeId = 1) => new()
+    private static LotteryInsertInfo ValidInsert() => new()
     {
-        StoreId = storeId,
         Name = "Rifa QA",
         DescriptionMd = "desc",
         RulesMd = "rules",
@@ -70,9 +91,8 @@ public class LotteryServiceTests
 
     // ---------- Create ----------
     [Fact]
-    public async Task CreateAsync_ShouldReturnDraftWithSlug_WhenOwner()
+    public async Task CreateAsync_ShouldReturnDraftWithSlug_ResolvingStoreFromAuthenticatedUser()
     {
-        _ownership.Setup(o => o.EnsureOwnershipAsync(1, 42)).Returns(Task.CompletedTask);
         _slug.Setup(s => s.GenerateUniqueSlugAsync("Rifa QA")).ReturnsAsync("rifa-qa");
         _lotteryRepo.Setup(r => r.InsertAsync(It.IsAny<Lottery>()))
             .ReturnsAsync((Lottery l) => { l.LotteryId = 77; return l; });
@@ -83,19 +103,39 @@ public class LotteryServiceTests
         info.LotteryId.Should().Be(77);
         info.Slug.Should().Be("rifa-qa");
         info.Status.Should().Be(LotteryStatusDto.Draft);
-        _lotteryRepo.Verify(r => r.InsertAsync(It.Is<Lottery>(l => l.Status == LotteryStatus.Draft)), Times.Once);
+        info.StoreId.Should().Be(10); // StoreId vem do EnsureMyStoreAsync, não do DTO
+        info.StoreClientId.Should().Be("client-qa");
+
+        _proxyPay.Verify(p => p.EnsureMyStoreAsync("QA Owner", "qa@example.com"), Times.Once);
+        _lotteryRepo.Verify(r => r.InsertAsync(
+            It.Is<Lottery>(l => l.Status == LotteryStatus.Draft && l.StoreId == 10)), Times.Once);
     }
 
     [Fact]
-    public async Task CreateAsync_ShouldThrow_WhenNotOwner()
+    public async Task CreateAsync_ShouldThrow_WhenNAuthUserMissing()
     {
-        _ownership.Setup(o => o.EnsureOwnershipAsync(1, 42))
-            .ThrowsAsync(new UnauthorizedAccessException());
+        _nauth.Setup(n => n.GetCurrentAsync()).ReturnsAsync((NAuthUserInfo?)null);
 
         var sut = CreateSut();
         Func<Task> act = () => sut.CreateAsync(42, ValidInsert());
 
-        await act.Should().ThrowAsync<UnauthorizedAccessException>();
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*NAuth*");
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldThrow_WhenUserHasNoEmailOrName()
+    {
+        _nauth.Setup(n => n.GetCurrentAsync()).ReturnsAsync(new NAuthUserInfo
+        {
+            UserId = 42, Name = "", Email = ""
+        });
+
+        var sut = CreateSut();
+        Func<Task> act = () => sut.CreateAsync(42, ValidInsert());
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*nome ou e-mail*");
     }
 
     // ---------- Publish ----------

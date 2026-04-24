@@ -97,7 +97,6 @@ public class LotteryActivationTests
 
     private LotteryInsertInfo BuildLottery() => new()
     {
-        StoreId = _fixture.StoreId,
         Name = UniqueId.New("qa-lottery-activation"),
         DescriptionMd = "# Descrição QA activation",
         RulesMd = "## Regras QA activation",

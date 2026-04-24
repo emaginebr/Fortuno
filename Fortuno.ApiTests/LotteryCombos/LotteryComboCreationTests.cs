@@ -64,7 +64,6 @@ public class LotteryComboCreationTests
     {
         var dto = new LotteryInsertInfo
         {
-            StoreId = _fixture.StoreId,
             Name = UniqueId.New("qa-lottery-combo"),
             DescriptionMd = "# Descrição QA",
             RulesMd = "## Regras QA",

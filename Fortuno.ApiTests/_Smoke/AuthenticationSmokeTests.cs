@@ -16,13 +16,13 @@ public class AuthenticationSmokeTests
 
     /// <summary>
     /// Cenário US1 #1: prova que o token emitido pelo NAuth e injetado pela fixture
-    /// autoriza uma chamada autenticada contra a API (GET /lotteries/store/{id}).
+    /// autoriza uma chamada autenticada contra a API (GET /lotteries/mine).
     /// </summary>
     [Fact]
     public async Task Login_ShouldObtainTokenAndAuthorizeAuthenticatedCall()
     {
         var response = await _fixture.Client
-            .Request("lotteries", "store", _fixture.StoreId)
+            .Request("lotteries", "mine")
             .GetAsync();
 
         response.StatusCode.Should().Be(200,

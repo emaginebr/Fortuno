@@ -1,0 +1,15 @@
+meta {
+  name: List My Lotteries
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/lotteries/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

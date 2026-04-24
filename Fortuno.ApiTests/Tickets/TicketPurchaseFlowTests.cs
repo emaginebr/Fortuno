@@ -174,7 +174,6 @@ public class TicketPurchaseFlowTests
     {
         var lottery = await PostAsync<LotteryInsertInfo, LotteryInfo>("lotteries", new()
         {
-            StoreId = _fixture.StoreId,
             Name = UniqueId.New($"qa-ticket-{numberType.ToString().ToLowerInvariant()}"),
             DescriptionMd = "# desc",
             RulesMd = "## regras",

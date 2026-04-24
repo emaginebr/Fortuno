@@ -86,6 +86,91 @@ public class ProxyPayAppService : IProxyPayAppService
         };
     }
 
+    public async Task<ProxyPayStoreInfo?> GetMyStoreAsync()
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Post, "graphql")
+        {
+            Content = JsonContent.Create(new { query = "{ myStore { storeId userId clientId name } }" })
+        };
+        req.Headers.TryAddWithoutValidation("X-Tenant-Id", _settings.TenantId);
+        ForwardAuthHeader(req);
+
+        _logger.LogInformation(
+            "ProxyPay: POST {Url}/graphql (tenant={Tenant}) — query myStore para resolver store do usuário autenticado",
+            _settings.ApiUrl, _settings.TenantId);
+
+        var res = await _http.SendAsync(req);
+        var body = await res.Content.ReadAsStringAsync();
+        _logger.LogInformation(
+            "ProxyPay: resposta myStore status={Status} body={Body}",
+            (int)res.StatusCode, body);
+
+        if (!res.IsSuccessStatusCode) return null;
+
+        var payload = JsonSerializer.Deserialize<GraphQLResponse<MyStoreData>>(body, JsonOptions);
+        var store = payload?.Data?.MyStore?.FirstOrDefault();
+        if (store is null)
+        {
+            _logger.LogInformation("ProxyPay: myStore vazio — usuário autenticado não possui Store.");
+            return null;
+        }
+
+        return new ProxyPayStoreInfo
+        {
+            StoreId = store.StoreId,
+            OwnerUserId = store.UserId,
+            Name = store.Name ?? string.Empty,
+            ClientId = store.ClientId ?? string.Empty
+        };
+    }
+
+    public async Task<ProxyPayStoreInfo> CreateStoreAsync(string name, string email)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Post, "store")
+        {
+            Content = JsonContent.Create(new { name, email, billingStrategy = 1 })
+        };
+        req.Headers.TryAddWithoutValidation("X-Tenant-Id", _settings.TenantId);
+        ForwardAuthHeader(req);
+
+        _logger.LogInformation(
+            "ProxyPay: POST {Url}/store (tenant={Tenant}) — criando Store name={Name} email={Email}",
+            _settings.ApiUrl, _settings.TenantId, name, email);
+
+        var res = await _http.SendAsync(req);
+        var body = await res.Content.ReadAsStringAsync();
+        _logger.LogInformation(
+            "ProxyPay: resposta CreateStore status={Status} body={Body}",
+            (int)res.StatusCode, body);
+
+        if (!res.IsSuccessStatusCode)
+            throw new InvalidOperationException(
+                $"ProxyPay indisponível ao criar Store (status {(int)res.StatusCode}). Body: {Truncate(body, 500)}");
+
+        var created = JsonSerializer.Deserialize<StoreDto>(body, JsonOptions)
+            ?? throw new InvalidOperationException("ProxyPay retornou resposta vazia ao criar Store.");
+        if (created.StoreId <= 0)
+            throw new InvalidOperationException($"ProxyPay retornou storeId inválido ao criar Store. Body: {Truncate(body, 500)}");
+
+        return new ProxyPayStoreInfo
+        {
+            StoreId = created.StoreId,
+            OwnerUserId = created.UserId,
+            Name = created.Name ?? name,
+            ClientId = created.ClientId ?? string.Empty
+        };
+    }
+
+    public async Task<ProxyPayStoreInfo> EnsureMyStoreAsync(string name, string email)
+    {
+        var existing = await GetMyStoreAsync();
+        if (existing is not null) return existing;
+
+        _logger.LogInformation(
+            "ProxyPay: usuário sem Store; criando automaticamente via POST /store (name={Name})", name);
+        return await CreateStoreAsync(name, email);
+    }
+
     public async Task<ProxyPayQRCodeResponse> CreateQRCodeAsync(ProxyPayQRCodeRequest request)
     {
         using var req = new HttpRequestMessage(HttpMethod.Post, "payment/qrcode")

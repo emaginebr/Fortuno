@@ -5,9 +5,6 @@ namespace Fortuno.DTO.Lottery;
 
 public class LotteryInsertInfo
 {
-    [JsonPropertyName("storeId")]
-    public long StoreId { get; set; }
-
     [JsonPropertyName("editionNumber")]
     public int EditionNumber { get; set; } = 1;
 

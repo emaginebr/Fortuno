@@ -12,7 +12,6 @@ public class LotteryInsertInfoValidatorTests
 
     private static LotteryInsertInfo Valid() => new()
     {
-        StoreId = 1,
         Name = "Rifa QA",
         DescriptionMd = "desc",
         RulesMd = "rules",
@@ -34,13 +33,6 @@ public class LotteryInsertInfoValidatorTests
     {
         var result = _validator.TestValidate(Valid());
         result.ShouldNotHaveAnyValidationErrors();
-    }
-
-    [Fact]
-    public void Should_Fail_When_StoreIdZero()
-    {
-        var dto = Valid(); dto.StoreId = 0;
-        _validator.TestValidate(dto).ShouldHaveValidationErrorFor(x => x.StoreId);
     }
 
     [Fact]

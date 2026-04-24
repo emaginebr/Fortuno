@@ -191,7 +191,6 @@ public class LotteryLifecycleTests
 
     private LotteryInsertInfo BuildValidInsertInfo(string name) => new()
     {
-        StoreId = _fixture.StoreId,
         Name = name,
         DescriptionMd = $"# Lottery {name}\n\nDescrição gerada pelo teste QA.",
         RulesMd = "## Regras\n\nRegras geradas pelo teste QA.",

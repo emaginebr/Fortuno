@@ -58,7 +58,6 @@ public class LotteryPublicQueryTests
     {
         var dto = new LotteryInsertInfo
         {
-            StoreId = _fixture.StoreId,
             Name = UniqueId.New("qa-lottery"),
             DescriptionMd = "# Descrição QA",
             RulesMd = "## Regras QA",

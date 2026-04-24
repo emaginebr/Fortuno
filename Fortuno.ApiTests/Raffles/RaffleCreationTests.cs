@@ -62,7 +62,6 @@ public class RaffleCreationTests
     {
         var dto = new LotteryInsertInfo
         {
-            StoreId = _fixture.StoreId,
             Name = UniqueId.New("qa-lottery-raffle"),
             DescriptionMd = "# Descrição QA",
             RulesMd = "## Regras QA",

@@ -19,6 +19,7 @@ public class LotteryService : ILotteryService
     private readonly IStoreOwnershipGuard _ownership;
     private readonly INumberCompositionService _numbers;
     private readonly IProxyPayAppService _proxyPay;
+    private readonly INAuthAppService _nauth;
 
     public LotteryService(
         ILotteryRepository<Lottery> lotteryRepo,
@@ -29,7 +30,8 @@ public class LotteryService : ILotteryService
         ISlugService slugService,
         IStoreOwnershipGuard ownership,
         INumberCompositionService numbers,
-        IProxyPayAppService proxyPay)
+        IProxyPayAppService proxyPay,
+        INAuthAppService nauth)
     {
         _lotteryRepo = lotteryRepo;
         _imageRepo = imageRepo;
@@ -40,22 +42,26 @@ public class LotteryService : ILotteryService
         _ownership = ownership;
         _numbers = numbers;
         _proxyPay = proxyPay;
+        _nauth = nauth;
     }
 
     public async Task<LotteryInfo> CreateAsync(long currentUserId, LotteryInsertInfo dto)
     {
-        await _ownership.EnsureOwnershipAsync(dto.StoreId, currentUserId);
+        var user = await _nauth.GetCurrentAsync()
+            ?? throw new InvalidOperationException("Usuário autenticado não encontrado no NAuth.");
+        if (string.IsNullOrWhiteSpace(user.Name) || string.IsNullOrWhiteSpace(user.Email))
+            throw new InvalidOperationException(
+                "Usuário sem nome ou e-mail cadastrado — não é possível criar Store automaticamente.");
 
-        var store = await _proxyPay.GetStoreAsync(dto.StoreId)
-            ?? throw new InvalidOperationException($"Store {dto.StoreId} não encontrada no ProxyPay.");
+        var store = await _proxyPay.EnsureMyStoreAsync(user.Name, user.Email);
         if (string.IsNullOrWhiteSpace(store.ClientId))
             throw new InvalidOperationException(
-                $"Store {dto.StoreId} não possui clientId configurado no ProxyPay.");
+                $"Store {store.StoreId} do ProxyPay não possui clientId configurado.");
 
         var slug = await _slugService.GenerateUniqueSlugAsync(dto.Name);
         var entity = new Lottery
         {
-            StoreId = dto.StoreId,
+            StoreId = store.StoreId,
             StoreClientId = store.ClientId,
             EditionNumber = dto.EditionNumber,
             Name = dto.Name,
@@ -133,6 +139,14 @@ public class LotteryService : ILotteryService
     public async Task<List<LotteryInfo>> ListByStoreAsync(long storeId)
     {
         var list = await _lotteryRepo.ListByStoreAsync(storeId);
+        return list.Select(MapToDto).ToList();
+    }
+
+    public async Task<List<LotteryInfo>> ListMineAsync()
+    {
+        var store = await _proxyPay.GetMyStoreAsync();
+        if (store is null) return new List<LotteryInfo>();
+        var list = await _lotteryRepo.ListByStoreAsync(store.StoreId);
         return list.Select(MapToDto).ToList();
     }
 

@@ -64,7 +64,6 @@ public class LotteryImageCreationTests
     {
         var dto = new LotteryInsertInfo
         {
-            StoreId = _fixture.StoreId,
             Name = UniqueId.New("qa-lottery-img"),
             DescriptionMd = "# Descrição QA",
             RulesMd = "## Regras QA",

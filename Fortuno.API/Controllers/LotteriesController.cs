@@ -49,9 +49,9 @@ public class LotteriesController : ControllerBase
         return Ok(info);
     }
 
-    [HttpGet("store/{storeId:long}")]
-    public async Task<IActionResult> ListByStore(long storeId)
-        => Ok(await _lotteries.ListByStoreAsync(storeId));
+    [HttpGet("mine")]
+    public async Task<IActionResult> ListMine()
+        => Ok(await _lotteries.ListMineAsync());
 
     [HttpGet("open")]
     [AllowAnonymous]
