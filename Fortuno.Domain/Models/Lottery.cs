@@ -6,6 +6,7 @@ public class Lottery
 {
     public long LotteryId { get; set; }
     public long StoreId { get; set; }
+    public string? StoreClientId { get; set; }
     public int EditionNumber { get; set; } = 1;
     public string Name { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;

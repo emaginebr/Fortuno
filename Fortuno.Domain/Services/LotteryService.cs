@@ -3,6 +3,7 @@ using Fortuno.Domain.Interfaces;
 using Fortuno.Domain.Models;
 using Fortuno.DTO.Enums;
 using Fortuno.DTO.Lottery;
+using Fortuno.Infra.Interfaces.AppServices;
 using Fortuno.Infra.Interfaces.Repository;
 
 namespace Fortuno.Domain.Services;
@@ -17,6 +18,7 @@ public class LotteryService : ILotteryService
     private readonly ISlugService _slugService;
     private readonly IStoreOwnershipGuard _ownership;
     private readonly INumberCompositionService _numbers;
+    private readonly IProxyPayAppService _proxyPay;
 
     public LotteryService(
         ILotteryRepository<Lottery> lotteryRepo,
@@ -26,7 +28,8 @@ public class LotteryService : ILotteryService
         ITicketRepository<Ticket> ticketRepo,
         ISlugService slugService,
         IStoreOwnershipGuard ownership,
-        INumberCompositionService numbers)
+        INumberCompositionService numbers,
+        IProxyPayAppService proxyPay)
     {
         _lotteryRepo = lotteryRepo;
         _imageRepo = imageRepo;
@@ -36,16 +39,24 @@ public class LotteryService : ILotteryService
         _slugService = slugService;
         _ownership = ownership;
         _numbers = numbers;
+        _proxyPay = proxyPay;
     }
 
     public async Task<LotteryInfo> CreateAsync(long currentUserId, LotteryInsertInfo dto)
     {
         await _ownership.EnsureOwnershipAsync(dto.StoreId, currentUserId);
 
+        var store = await _proxyPay.GetStoreAsync(dto.StoreId)
+            ?? throw new InvalidOperationException($"Store {dto.StoreId} não encontrada no ProxyPay.");
+        if (string.IsNullOrWhiteSpace(store.ClientId))
+            throw new InvalidOperationException(
+                $"Store {dto.StoreId} não possui clientId configurado no ProxyPay.");
+
         var slug = await _slugService.GenerateUniqueSlugAsync(dto.Name);
         var entity = new Lottery
         {
             StoreId = dto.StoreId,
+            StoreClientId = store.ClientId,
             EditionNumber = dto.EditionNumber,
             Name = dto.Name,
             Slug = slug,
@@ -156,6 +167,19 @@ public class LotteryService : ILotteryService
         if (errors.Count > 0)
             throw new InvalidOperationException("Requisitos de publicação não atendidos: " + string.Join(" | ", errors));
 
+        // Backfill StoreClientId para Lotteries antigas criadas antes do cache existir.
+        // O criador da Lottery é o dono da Store, então o token dele resolve `myStore` no ProxyPay.
+        if (string.IsNullOrWhiteSpace(entity.StoreClientId))
+        {
+            var store = await _proxyPay.GetStoreAsync(entity.StoreId)
+                ?? throw new InvalidOperationException(
+                    $"Store {entity.StoreId} não encontrada no ProxyPay para popular StoreClientId.");
+            if (string.IsNullOrWhiteSpace(store.ClientId))
+                throw new InvalidOperationException(
+                    $"Store {entity.StoreId} não possui clientId no ProxyPay.");
+            entity.StoreClientId = store.ClientId;
+        }
+
         entity.Status = LotteryStatus.Open;
         entity.UpdatedAt = DateTime.UtcNow;
         var saved = await _lotteryRepo.UpdateAsync(entity);
@@ -252,6 +276,7 @@ public class LotteryService : ILotteryService
     {
         LotteryId = e.LotteryId,
         StoreId = e.StoreId,
+        StoreClientId = e.StoreClientId,
         EditionNumber = e.EditionNumber,
         Name = e.Name,
         Slug = e.Slug,

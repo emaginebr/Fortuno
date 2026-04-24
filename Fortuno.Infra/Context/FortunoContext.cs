@@ -48,6 +48,7 @@ public class FortunoContext : DbContext
             e.HasKey(x => x.LotteryId).HasName("fortuna_lotteries_pkey");
             e.Property(x => x.LotteryId).HasColumnName("lottery_id").UseIdentityAlwaysColumn();
             e.Property(x => x.StoreId).HasColumnName("store_id").IsRequired();
+            e.Property(x => x.StoreClientId).HasColumnName("store_client_id").HasColumnType("varchar(64)");
             e.Property(x => x.EditionNumber).HasColumnName("edition_number").HasDefaultValue(1).IsRequired();
             e.Property(x => x.Name).HasColumnName("name").HasColumnType("varchar(160)").IsRequired();
             e.Property(x => x.Slug).HasColumnName("slug").HasColumnType("varchar(200)").IsRequired();

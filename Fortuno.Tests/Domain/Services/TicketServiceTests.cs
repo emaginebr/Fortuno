@@ -125,7 +125,8 @@ public class TicketServiceTests
 
         var lottery = new Lottery
         {
-            LotteryId = lotteryId, StoreId = storeId, Status = LotteryStatus.Open,
+            LotteryId = lotteryId, StoreId = storeId, StoreClientId = "client-abc",
+            Status = LotteryStatus.Open,
             TicketPrice = 10m, NumberType = NumberType.Int64,
             NumberValueMin = 1, NumberValueMax = 1000,
             TicketMin = 1, TicketMax = 10, TicketNumIni = 1, TicketNumEnd = 1000,

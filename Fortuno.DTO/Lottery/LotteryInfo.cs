@@ -14,6 +14,9 @@ public class LotteryInfo
     [JsonPropertyName("storeId")]
     public long StoreId { get; set; }
 
+    [JsonPropertyName("storeClientId")]
+    public string? StoreClientId { get; set; }
+
     [JsonPropertyName("editionNumber")]
     public int EditionNumber { get; set; }
 

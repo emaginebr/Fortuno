@@ -18,6 +18,7 @@ BEGIN;
 CREATE TABLE fortuna_lotteries (
     lottery_id            bigint          GENERATED ALWAYS AS IDENTITY,
     store_id              bigint          NOT NULL,
+    store_client_id       varchar(64)     NULL,
     edition_number        integer         NOT NULL DEFAULT 1,
     name                  varchar(160)    NOT NULL,
     slug                  varchar(200)    NOT NULL,

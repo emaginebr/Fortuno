@@ -141,14 +141,14 @@ public class TicketService : ITicketService
             await _reservationRepo.InsertBatchAsync(reservations);
         }
 
-        var store = await _proxyPay.GetStoreAsync(lottery.StoreId)
-            ?? throw new InvalidOperationException($"Store {lottery.StoreId} não encontrada no ProxyPay.");
-        if (string.IsNullOrWhiteSpace(store.ClientId))
-            throw new InvalidOperationException($"Store {lottery.StoreId} não tem clientId configurado no ProxyPay.");
+        if (string.IsNullOrWhiteSpace(lottery.StoreClientId))
+            throw new InvalidOperationException(
+                $"Lottery {lottery.LotteryId} sem storeClientId em cache. " +
+                "Republique a Lottery (publish) para sincronizar com o ProxyPay.");
 
         var qr = await _proxyPay.CreateQRCodeAsync(new ProxyPayQRCodeRequest
         {
-            ClientId = store.ClientId,
+            ClientId = lottery.StoreClientId,
             Customer = new ProxyPayCustomer
             {
                 Name = user.Name,

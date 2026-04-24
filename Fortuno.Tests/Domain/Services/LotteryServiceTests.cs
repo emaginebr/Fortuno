@@ -5,6 +5,8 @@ using Fortuno.Domain.Models;
 using Fortuno.Domain.Services;
 using Fortuno.DTO.Enums;
 using Fortuno.DTO.Lottery;
+using Fortuno.DTO.ProxyPay;
+using Fortuno.Infra.Interfaces.AppServices;
 using Fortuno.Infra.Interfaces.Repository;
 using Moq;
 
@@ -20,6 +22,21 @@ public class LotteryServiceTests
     private readonly Mock<ISlugService> _slug = new();
     private readonly Mock<IStoreOwnershipGuard> _ownership = new();
     private readonly Mock<INumberCompositionService> _numbers = new();
+    private readonly Mock<IProxyPayAppService> _proxyPay = new();
+
+    public LotteryServiceTests()
+    {
+        // Default: ProxyPay devolve uma Store com clientId válido para Create/Publish.
+        // Testes podem sobrescrever via Setup().
+        _proxyPay.Setup(p => p.GetStoreAsync(It.IsAny<long>()))
+            .ReturnsAsync((long sid) => new ProxyPayStoreInfo
+            {
+                StoreId = sid,
+                OwnerUserId = 42,
+                Name = "QA Store",
+                ClientId = "client-qa"
+            });
+    }
 
     private LotteryService CreateSut() => new(
         _lotteryRepo.Object,
@@ -29,7 +46,8 @@ public class LotteryServiceTests
         _ticketRepo.Object,
         _slug.Object,
         _ownership.Object,
-        _numbers.Object);
+        _numbers.Object,
+        _proxyPay.Object);
 
     private static LotteryInsertInfo ValidInsert(long storeId = 1) => new()
     {
