@@ -142,7 +142,12 @@ public class LotteryServiceTests
     [Fact]
     public async Task PublishAsync_ShouldTransitionDraftToOpen_WhenAllPrerequisitesMet()
     {
-        var entity = new Lottery { LotteryId = 1, StoreId = 1, Status = LotteryStatus.Draft, NumberType = NumberType.Int64 };
+        var entity = new Lottery
+        {
+            LotteryId = 1, StoreId = 1, Status = LotteryStatus.Draft,
+            NumberType = NumberType.Int64,
+            TicketNumIni = 1, TicketNumEnd = 1000
+        };
         _lotteryRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(entity);
         _imageRepo.Setup(i => i.CountByLotteryAsync(1)).ReturnsAsync(1);
         _raffleRepo.Setup(r => r.CountByLotteryAsync(1)).ReturnsAsync(1);

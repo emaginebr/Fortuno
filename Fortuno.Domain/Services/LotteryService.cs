@@ -175,8 +175,21 @@ public class LotteryService : ILotteryService
         foreach (var r in raffles) totalAwards += await _awardRepo.CountByRaffleAsync(r.RaffleId);
         if (totalAwards < 1) errors.Add("Ao menos 1 RaffleAward é obrigatório.");
 
-        if (entity.NumberType != NumberType.Int64 && entity.TicketNumEnd <= entity.TicketNumIni)
-            errors.Add("Para tipos compostos, TicketNumEnd deve ser maior que TicketNumIni.");
+        // Validação de faixa por NumberType:
+        //   Int64    → TicketNumIni/End define o pool; exige End > 0 e End >= Ini.
+        //   Composed → NumberValueMin/Max define a faixa de cada componente; TicketNumIni/End é ignorado.
+        if (entity.NumberType == NumberType.Int64)
+        {
+            if (entity.TicketNumEnd <= 0 || entity.TicketNumEnd < entity.TicketNumIni)
+                errors.Add("Para Int64, TicketNumEnd deve ser maior que zero e maior ou igual a TicketNumIni.");
+        }
+        else
+        {
+            if (entity.NumberValueMin < 0 || entity.NumberValueMin > 99
+                || entity.NumberValueMax < 0 || entity.NumberValueMax > 99
+                || entity.NumberValueMin > entity.NumberValueMax)
+                errors.Add("Para tipos compostos, NumberValueMin/Max deve estar em [0..99] e Min ≤ Max.");
+        }
 
         if (errors.Count > 0)
             throw new InvalidOperationException("Requisitos de publicação não atendidos: " + string.Join(" | ", errors));
