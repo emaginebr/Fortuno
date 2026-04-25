@@ -35,13 +35,21 @@ public class NumberReservationRepository : Repository<NumberReservation>, INumbe
                 && x.ExpiresAt > now);
     }
 
-    public async Task<bool> AreNumbersAvailableAsync(long lotteryId, IEnumerable<long> numbers)
+    public async Task<bool> AreNumbersAvailableAsync(
+        long lotteryId,
+        IEnumerable<long> numbers,
+        long? ignoreReservationsFromUserId = null)
     {
         var now = DateTime.UtcNow;
         var wanted = numbers.ToList();
-        var conflict = await _context.NumberReservations.AsNoTracking()
-            .AnyAsync(x => x.LotteryId == lotteryId && x.ExpiresAt > now && wanted.Contains(x.TicketNumber));
-        if (conflict) return false;
+
+        var reservationQuery = _context.NumberReservations.AsNoTracking()
+            .Where(x => x.LotteryId == lotteryId && x.ExpiresAt > now && wanted.Contains(x.TicketNumber));
+        if (ignoreReservationsFromUserId.HasValue)
+            reservationQuery = reservationQuery.Where(x => x.UserId != ignoreReservationsFromUserId.Value);
+
+        if (await reservationQuery.AnyAsync()) return false;
+
         var sold = await _context.Tickets.AsNoTracking()
             .AnyAsync(x => x.LotteryId == lotteryId && wanted.Contains(x.TicketNumber));
         return !sold;
@@ -63,5 +71,23 @@ public class NumberReservationRepository : Repository<NumberReservation>, INumbe
             .ToListAsync();
         foreach (var r in list) r.ExpiresAt = now;
         await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Vincula todas as reservas ativas do usuário (sem InvoiceId) a uma invoice
+    /// e estende o ExpiresAt. UPDATE em SQL via ExecuteUpdateAsync — sem tracking,
+    /// evita conflito com entidades já anexadas no DbContext durante a mesma request.
+    /// </summary>
+    public async Task LinkUnboundToInvoiceAsync(long userId, long lotteryId, long invoiceId, DateTime expiresAt)
+    {
+        var now = DateTime.UtcNow;
+        await _context.NumberReservations
+            .Where(x => x.UserId == userId
+                && x.LotteryId == lotteryId
+                && x.ExpiresAt > now
+                && x.InvoiceId == null)
+            .ExecuteUpdateAsync(set => set
+                .SetProperty(r => r.InvoiceId, invoiceId)
+                .SetProperty(r => r.ExpiresAt, expiresAt));
     }
 }

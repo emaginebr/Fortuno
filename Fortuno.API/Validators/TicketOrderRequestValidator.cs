@@ -1,5 +1,4 @@
 using FluentValidation;
-using Fortuno.DTO.Enums;
 using Fortuno.DTO.Ticket;
 
 namespace Fortuno.API.Validators;
@@ -15,10 +14,9 @@ public class TicketOrderRequestValidator : AbstractValidator<TicketOrderRequest>
             .Matches("^[A-Z0-9]*$").WithMessage("ReferralCode deve conter apenas A-Z e dígitos.")
             .When(x => !string.IsNullOrWhiteSpace(x.ReferralCode));
 
+        // pickedNumbers é opcional; quando vier, count deve ser <= quantity.
         RuleFor(x => x.PickedNumbers)
-            .NotNull().NotEmpty()
-            .Must((req, picks) => picks != null && picks.Count == req.Quantity)
-            .When(x => x.Mode == TicketOrderMode.UserPicks)
-            .WithMessage("No modo UserPicks, pickedNumbers é obrigatório e deve ter a mesma quantidade do pedido.");
+            .Must((req, picks) => picks == null || picks.Count <= req.Quantity)
+            .WithMessage("pickedNumbers não pode exceder quantity — números faltantes são sorteados aleatoriamente.");
     }
 }

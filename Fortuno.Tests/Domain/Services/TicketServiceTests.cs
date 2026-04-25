@@ -38,6 +38,11 @@ public class TicketServiceTests
             .Returns((NumberType _, long v) => v.ToString());
         _numbers.Setup(n => n.IsValid(NumberType.Int64, It.IsAny<long>(), It.IsAny<int>(), It.IsAny<int>()))
             .Returns((NumberType _, long v, int min, int max) => v >= min && v <= max);
+
+        // Default vazio para ListByOrderIdAsync — fluxo de pagamento sempre consulta
+        // os números pré-escolhidos (ausência de picks → tudo aleatório).
+        _orderNumberRepo.Setup(r => r.ListByOrderIdAsync(It.IsAny<long>()))
+            .ReturnsAsync(new List<TicketOrderNumber>());
     }
 
     private delegate bool TryParseLongHandler(NumberType type, string input, out long value);
@@ -228,8 +233,7 @@ public class TicketServiceTests
         var qr = await sut.CreateQRCodeAsync(userId, new TicketOrderRequest
         {
             LotteryId = lotteryId,
-            Quantity = 3,
-            Mode = DtoTicketOrderMode.Random
+            Quantity = 3
         });
 
         qr.InvoiceId.Should().Be(invoiceId);

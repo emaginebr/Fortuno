@@ -1,5 +1,5 @@
 meta {
-  name: Create QR Code (Random)
+  name: Create QR Code
   type: http
   seq: 3
 }
@@ -22,8 +22,7 @@ auth:bearer {
 body:json {
   {
     "lotteryId": {{lotteryId}},
-    "quantity": 3,
-    "mode": 1
+    "quantity": 3
   }
 }
 

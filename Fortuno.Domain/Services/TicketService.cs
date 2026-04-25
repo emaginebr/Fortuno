@@ -149,16 +149,20 @@ public class TicketService : ITicketService
             discount = Math.Round(subtotal * (decimal)(combo.DiscountValue / 100f), 2);
         var totalAmount = subtotal - discount;
 
-        var mode = (TicketOrderMode)request.Mode;
-
-        List<long>? pickedLongs = null;
-        if (mode == TicketOrderMode.UserPicks)
+        // pickedNumbers é opcional. Se vier, count <= quantity. Os faltantes são
+        // sorteados aleatoriamente no momento do pagamento (R-002).
+        var pickedLongs = new List<long>();
+        if (request.PickedNumbers is { Count: > 0 })
         {
-            if (request.PickedNumbers is null || request.PickedNumbers.Count != request.Quantity)
-                throw new InvalidOperationException("Em UserPicks, pickedNumbers deve ter a mesma quantidade do pedido.");
+            if (request.PickedNumbers.Count > request.Quantity)
+                throw new InvalidOperationException(
+                    $"pickedNumbers ({request.PickedNumbers.Count}) excede quantity ({request.Quantity}).");
             pickedLongs = ParseAndValidatePickedNumbers(lottery, request.PickedNumbers);
-            if (!await _reservationRepo.AreNumbersAvailableAsync(lottery.LotteryId, pickedLongs))
-                throw new InvalidOperationException("Um ou mais números já foram reservados ou vendidos.");
+            // Ignora reservas do próprio usuário — ele pode ter reservado via
+            // POST /tickets/reserve-number antes de finalizar a compra.
+            if (!await _reservationRepo.AreNumbersAvailableAsync(
+                lottery.LotteryId, pickedLongs, ignoreReservationsFromUserId: currentUserId))
+                throw new InvalidOperationException("Um ou mais números já foram reservados ou vendidos por outro usuário.");
 
             await _reservationRepo.ExpireByUserAndLotteryAsync(currentUserId, lottery.LotteryId);
             var expires = DateTime.UtcNow.AddMinutes(20);
@@ -171,6 +175,9 @@ public class TicketService : ITicketService
             });
             await _reservationRepo.InsertBatchAsync(reservations);
         }
+        // Mode: artefato histórico (coluna ainda existe). Mantemos para auditoria —
+        // UserPicks quando há ao menos 1 número escolhido, Random caso contrário.
+        var mode = pickedLongs.Count > 0 ? TicketOrderMode.UserPicks : TicketOrderMode.Random;
 
         if (string.IsNullOrWhiteSpace(lottery.StoreClientId))
             throw new InvalidOperationException(
@@ -200,15 +207,12 @@ public class TicketService : ITicketService
             }
         });
 
-        if (mode == TicketOrderMode.UserPicks)
+        if (pickedLongs.Count > 0)
         {
-            var mine = await _reservationRepo.ListByUserAndLotteryAsync(currentUserId, lottery.LotteryId);
-            foreach (var r in mine.Where(x => x.InvoiceId is null))
-            {
-                r.InvoiceId = qr.InvoiceId;
-                r.ExpiresAt = qr.ExpiredAt;
-                await _reservationRepo.UpdateAsync(r);
-            }
+            // UPDATE em massa via SQL — sem tracking, evita conflito com as
+            // reservas recém-inseridas que já estão anexadas ao DbContext desta request.
+            await _reservationRepo.LinkUnboundToInvoiceAsync(
+                currentUserId, lottery.LotteryId, qr.InvoiceId, qr.ExpiredAt);
         }
 
         var order = new TicketOrder
@@ -229,7 +233,7 @@ public class TicketService : ITicketService
         };
         await _orderRepo.InsertAsync(order);
 
-        if (mode == TicketOrderMode.UserPicks && pickedLongs is { Count: > 0 })
+        if (pickedLongs.Count > 0)
         {
             var numberRows = pickedLongs.Select(n => new TicketOrderNumber
             {
@@ -410,31 +414,41 @@ public class TicketService : ITicketService
                 "Lottery não estava Open no momento do pagamento — refund manual necessário.");
         }
 
-        List<long> finalNumbers;
-        if (order.Mode == TicketOrderMode.UserPicks)
+        // Fluxo unificado: picks (do TicketOrderNumber) + sorteio do restante.
+        // Sem picks → tudo aleatório. Picks parciais → preserva escolhidos e sorteia o resto.
+        var pickedRows = await _orderNumberRepo.ListByOrderIdAsync(order.TicketOrderId);
+        var pickedNumbers = pickedRows.Select(p => p.TicketNumber).ToList();
+
+        if (pickedNumbers.Count > 0)
         {
             var reservations = await _reservationRepo.ListByUserAndLotteryAsync(order.UserId, order.LotteryId);
-            var linked = reservations.Where(r => r.InvoiceId == order.InvoiceId && r.ExpiresAt > DateTime.UtcNow).ToList();
-            if (linked.Count != order.Quantity)
+            var linked = reservations
+                .Where(r => r.InvoiceId == order.InvoiceId && r.ExpiresAt > DateTime.UtcNow)
+                .Select(r => r.TicketNumber)
+                .ToHashSet();
+            if (!pickedNumbers.All(linked.Contains))
             {
                 await _orderRepo.TryMarkPaidAsync(order.TicketOrderId);
                 throw new InvalidOperationException(
-                    "Reservas expiraram antes do pagamento — refund manual necessário.");
+                    "Reservas dos números escolhidos expiraram antes do pagamento — refund manual necessário.");
             }
-            finalNumbers = linked.Select(r => r.TicketNumber).ToList();
         }
-        else
+
+        var remaining = order.Quantity - pickedNumbers.Count;
+        var randomNumbers = remaining > 0
+            ? await DrawRandomAvailableNumbersAsync(lottery, remaining)
+            : new List<long>();
+
+        if (randomNumbers.Count != remaining)
         {
-            finalNumbers = await DrawRandomAvailableNumbersAsync(lottery, order.Quantity);
-            if (finalNumbers.Count != order.Quantity)
-            {
-                var poolAtPayment = await ComputePoolStatsAsync(lottery);
-                await _orderRepo.TryMarkPaidAsync(order.TicketOrderId);
-                throw new InvalidOperationException(BuildPoolInsufficientMessage(
-                    lottery, order.Quantity, poolAtPayment, "no momento do pagamento") +
-                    " Refund manual necessário.");
-            }
+            var poolAtPayment = await ComputePoolStatsAsync(lottery);
+            await _orderRepo.TryMarkPaidAsync(order.TicketOrderId);
+            throw new InvalidOperationException(BuildPoolInsufficientMessage(
+                lottery, remaining, poolAtPayment, "no momento do pagamento (após picks)") +
+                " Refund manual necessário.");
         }
+
+        var finalNumbers = pickedNumbers.Concat(randomNumbers).ToList();
 
         var rows = await _orderRepo.TryMarkPaidAsync(order.TicketOrderId);
         if (rows == 0)

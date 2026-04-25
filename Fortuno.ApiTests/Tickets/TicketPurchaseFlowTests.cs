@@ -28,8 +28,7 @@ public class TicketPurchaseFlowTests
         var request = new TicketOrderRequest
         {
             LotteryId = lottery.LotteryId,
-            Quantity = 2,
-            Mode = TicketOrderMode.Random
+            Quantity = 2
         };
 
         IFlurlResponse response;
@@ -79,8 +78,7 @@ public class TicketPurchaseFlowTests
                 .PostJsonAsync(new TicketOrderRequest
                 {
                     LotteryId = lottery.LotteryId,
-                    Quantity = 3,
-                    Mode = TicketOrderMode.Random
+                    Quantity = 3
                 });
             qr = await resp.GetJsonAsync<TicketQRCodeInfo>();
         }
@@ -140,8 +138,7 @@ public class TicketPurchaseFlowTests
         var request = new TicketOrderRequest
         {
             LotteryId = lottery.LotteryId,
-            Quantity = 2,
-            Mode = TicketOrderMode.Random
+            Quantity = 2
         };
 
         IFlurlResponse response;
