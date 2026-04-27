@@ -5,14 +5,12 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/tickets/mine?lotteryId={{lotteryId}}
+  url: {{baseUrl}}/tickets/mine
   body: none
   auth: bearer
 }
 
 params:query {
-  lotteryId: {{lotteryId}}
-  ~number: 
   ~fromDate: 
   ~toDate: 
 }
